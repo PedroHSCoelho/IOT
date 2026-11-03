@@ -1,0 +1,1385 @@
+[
+  {
+    "id": "tab_ponto",
+    "type": "tab",
+    "label": "Ponto",
+    "disabled": false,
+    "info": "Recebe os pontos pelo MQTT, grava no Supabase chamando registrar_ponto() e mostra o painel de gerência."
+  },
+  {
+    "id": "broker_local",
+    "type": "mqtt-broker",
+    "name": "Broker local (aedes)",
+    "broker": "localhost",
+    "port": "1883",
+    "clientid": "nodered-ponto",
+    "autoConnect": true,
+    "usetls": false,
+    "protocolVersion": "4",
+    "keepalive": "60",
+    "cleansession": true,
+    "autoUnsubscribe": true,
+    "birthTopic": "",
+    "closeTopic": "",
+    "willTopic": "",
+    "sessionExpiry": ""
+  },
+  {
+    "id": "pg_supabase",
+    "type": "postgreSQLConfig",
+    "name": "Supabase (usuario nodered)",
+    "host": "SUPABASE_DB_HOST",
+    "hostFieldType": "env",
+    "port": "SUPABASE_DB_PORT",
+    "portFieldType": "env",
+    "database": "SUPABASE_DB_NAME",
+    "databaseFieldType": "env",
+    "ssl": "{\"ca\":\"-----BEGIN CERTIFICATE-----\\nMIIDxDCCAqygAwIBAgIUbLxMod62P2ktCiAkxnKJwtE9VPYwDQYJKoZIhvcNAQEL\\nBQAwazELMAkGA1UEBhMCVVMxEDAOBgNVBAgMB0RlbHdhcmUxEzARBgNVBAcMCk5l\\ndyBDYXN0bGUxFTATBgNVBAoMDFN1cGFiYXNlIEluYzEeMBwGA1UEAwwVU3VwYWJh\\nc2UgUm9vdCAyMDIxIENBMB4XDTIxMDQyODEwNTY1M1oXDTMxMDQyNjEwNTY1M1ow\\nazELMAkGA1UEBhMCVVMxEDAOBgNVBAgMB0RlbHdhcmUxEzARBgNVBAcMCk5ldyBD\\nYXN0bGUxFTATBgNVBAoMDFN1cGFiYXNlIEluYzEeMBwGA1UEAwwVU3VwYWJhc2Ug\\nUm9vdCAyMDIxIENBMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqQXW\\nQyHOB+qR2GJobCq/CBmQ40G0oDmCC3mzVnn8sv4XNeWtE5XcEL0uVih7Jo4Dkx1Q\\nDmGHBH1zDfgs2qXiLb6xpw/CKQPypZW1JssOTMIfQppNQ87K75Ya0p25Y3ePS2t2\\nGtvHxNjUV6kjOZjEn2yWEcBdpOVCUYBVFBNMB4YBHkNRDa/+S4uywAoaTWnCJLUi\\ncvTlHmMw6xSQQn1UfRQHk50DMCEJ7Cy1RxrZJrkXXRP3LqQL2ijJ6F4yMfh+Gyb4\\nO4XajoVj/+R4GwywKYrrS8PrSNtwxr5StlQO8zIQUSMiq26wM8mgELFlS/32Uclt\\nNaQ1xBRizkzpZct9DwIDAQABo2AwXjALBgNVHQ8EBAMCAQYwHQYDVR0OBBYEFKjX\\nuXY32CztkhImng4yJNUtaUYsMB8GA1UdIwQYMBaAFKjXuXY32CztkhImng4yJNUt\\naUYsMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAB8spzNn+4VU\\ntVxbdMaX+39Z50sc7uATmus16jmmHjhIHz+l/9GlJ5KqAMOx26mPZgfzG7oneL2b\\nVW+WgYUkTT3XEPFWnTp2RJwQao8/tYPXWEJDc0WVQHrpmnWOFKU/d3MqBgBm5y+6\\njB81TU/RG2rVerPDWP+1MMcNNy0491CTL5XQZ7JfDJJ9CCmXSdtTl4uUQnSuv/Qx\\nCea13BX2ZgJc7Au30vihLhub52De4P/4gonKsNHYdbWjg7OWKwNv/zitGDVDB9Y2\\nCMTyZKG3XEu5Ghl1LEnI3QmEKsqaCLv12BnVjbkSeZsMnevJPs1Ye6TjjJwdik5P\\no/bKiIz+Fq8=\\n-----END CERTIFICATE-----\\n\",\"rejectUnauthorized\":true}",
+    "sslFieldType": "json",
+    "userFieldType": "env",
+    "userEnv": "SUPABASE_DB_USER",
+    "passwordFieldType": "env",
+    "passwordEnv": "SUPABASE_DB_PASSWORD",
+    "applicationName": "nodered-ponto",
+    "applicationNameType": "str",
+    "max": "4",
+    "maxFieldType": "num",
+    "idle": "30000",
+    "idleFieldType": "num",
+    "connectionTimeout": "10000",
+    "connectionTimeoutFieldType": "num"
+  },
+  {
+    "id": "c1",
+    "type": "comment",
+    "z": "tab_ponto",
+    "name": "1) PONTOS: MQTT -> registrar_ponto() no Supabase",
+    "info": "",
+    "x": 260,
+    "y": 40,
+    "wires": []
+  },
+  {
+    "id": "mqtt_evento",
+    "type": "mqtt in",
+    "z": "tab_ponto",
+    "name": "unifesp/ponto/evento",
+    "topic": "unifesp/ponto/evento",
+    "qos": "1",
+    "datatype": "utf8",
+    "broker": "broker_local",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "x": 160,
+    "y": 100,
+    "wires": [
+      [
+        "f_monta"
+      ]
+    ]
+  },
+  {
+    "id": "f_monta",
+    "type": "function",
+    "z": "tab_ponto",
+    "name": "monta parâmetros",
+    "func": "// A mensagem chega como TEXTO. Tentamos transformar em objeto JSON.\nlet p = null;\ntry { p = JSON.parse(msg.payload.toString()); } catch (e) { p = null; }\n\nif (p === null || typeof p !== 'object') {\n    // Texto que não é JSON: mandamos tudo nulo; o banco registra PAYLOAD_INVALIDO.\n    msg.params = [null, null, null, null, null, null, null, false,\n                  JSON.stringify({ texto_recebido: String(msg.payload).slice(0, 500) })];\n} else {\n    // Ordem EXATA dos parâmetros de registrar_ponto():\n    // (badge, origem, seq, ts, estado, rssi, snr, fila, payload)\n    const rssi = p.rssi_lora ?? p.rssi_ble ?? null;\n    msg.params = [p.badge ?? null, p.origem ?? null, p.seq ?? null, p.ts ?? null,\n                  p.estado ?? null, rssi, p.snr ?? null, p.fila ?? false,\n                  JSON.stringify(p)];\n}\n\n// $1, $2... são \"parâmetros\": o banco trata cada valor como DADO, nunca como comando.\n// Isso impede SQL injection. NUNCA monte o SQL juntando texto com a mensagem.\nmsg.query = \"SELECT * FROM registrar_ponto($1::integer, $2::text, $3::integer, \" +\n            \"$4::timestamptz, $5::text, $6::smallint, $7::real, $8::boolean, $9::jsonb)\";\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 400,
+    "y": 100,
+    "wires": [
+      [
+        "pg_registrar"
+      ]
+    ]
+  },
+  {
+    "id": "pg_registrar",
+    "type": "postgresql",
+    "z": "tab_ponto",
+    "name": "registrar_ponto()",
+    "query": "SELECT 1",
+    "postgreSQLConfig": "pg_supabase",
+    "split": false,
+    "rowsPerMsg": 1,
+    "outputs": 1,
+    "x": 620,
+    "y": 100,
+    "wires": [
+      [
+        "f_formata"
+      ]
+    ]
+  },
+  {
+    "id": "f_formata",
+    "type": "function",
+    "z": "tab_ponto",
+    "name": "resume resposta",
+    "func": "const r = Array.isArray(msg.payload) ? msg.payload[0] : msg.payload;\nmsg.payload = r;\nconst aceito = r.evento_id !== null;\nconst resumo = aceito\n    ? r.tipo + (r.contabilizado ? ' (conta horas)' : ' (NAO conta horas)') + (r.motivo ? ' - ' + r.motivo : '')\n    : 'REJEITADO - ' + r.motivo;\nnode.status({ fill: aceito ? 'green' : 'yellow', shape: 'dot', text: resumo });\nnode.log('registrar_ponto => ' + resumo);\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 830,
+    "y": 100,
+    "wires": [
+      [
+        "dbg_resp",
+        "delay_painel"
+      ]
+    ]
+  },
+  {
+    "id": "dbg_resp",
+    "type": "debug",
+    "z": "tab_ponto",
+    "name": "resposta do banco",
+    "active": true,
+    "tosidebar": true,
+    "console": true,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 1060,
+    "y": 60,
+    "wires": []
+  },
+  {
+    "id": "c2",
+    "type": "comment",
+    "z": "tab_ponto",
+    "name": "2) STATUS: gateway e PC atualizam \"ultimo_contato\" (mensagens offline são ignoradas)",
+    "info": "",
+    "x": 260,
+    "y": 200,
+    "wires": []
+  },
+  {
+    "id": "mqtt_gw",
+    "type": "mqtt in",
+    "z": "tab_ponto",
+    "name": "gateway/status",
+    "topic": "unifesp/ponto/gateway/status",
+    "qos": "1",
+    "datatype": "utf8",
+    "broker": "broker_local",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "x": 150,
+    "y": 260,
+    "wires": [
+      [
+        "f_status"
+      ]
+    ]
+  },
+  {
+    "id": "mqtt_pc",
+    "type": "mqtt in",
+    "z": "tab_ponto",
+    "name": "pc/+/status",
+    "topic": "unifesp/ponto/pc/+/status",
+    "qos": "1",
+    "datatype": "utf8",
+    "broker": "broker_local",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "x": 140,
+    "y": 320,
+    "wires": [
+      [
+        "f_status"
+      ]
+    ]
+  },
+  {
+    "id": "f_status",
+    "type": "function",
+    "z": "tab_ponto",
+    "name": "monta UPDATE",
+    "func": "const texto = msg.payload.toString().trim();\nlet obj = null;\ntry { obj = JSON.parse(texto); } catch (e) { /* texto simples, ex.: online */ }\n\n// O gateway pode avisar que caiu (\"offline\"), em texto ou JSON.\nconst offline = /^offline$/i.test(texto) ||\n                (obj && (obj.online === false || /^offline$/i.test(String(obj.status || obj.estado || ''))));\nif (offline) {\n    node.status({ fill: 'grey', shape: 'ring', text: 'offline (ignorado)' });\n    return null;\n}\n\nlet id = obj && typeof obj === 'object' ? (obj.id ?? null) : null;\nlet tipo;\nif (msg.topic.includes('/gateway/')) { tipo = 'gateway'; id = id ?? 'gw-lab'; }\nelse                                 { tipo = 'pc';      id = id ?? 'pc-lab-01'; }\n\nmsg.params = [tipo, id];\nmsg.query = \"UPDATE dispositivo SET ultimo_contato = now() WHERE tipo = $1 AND identificador = $2\";\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 400,
+    "y": 290,
+    "wires": [
+      [
+        "pg_status"
+      ]
+    ]
+  },
+  {
+    "id": "pg_status",
+    "type": "postgresql",
+    "z": "tab_ponto",
+    "name": "atualiza ultimo_contato",
+    "query": "SELECT 1",
+    "postgreSQLConfig": "pg_supabase",
+    "split": false,
+    "rowsPerMsg": 1,
+    "outputs": 1,
+    "x": 640,
+    "y": 290,
+    "wires": [
+      [
+        "delay_painel"
+      ]
+    ]
+  },
+  {
+    "id": "c3",
+    "type": "comment",
+    "z": "tab_ponto",
+    "name": "3) ERROS: banco fora, internet caiu, senha errada...",
+    "info": "",
+    "x": 260,
+    "y": 400,
+    "wires": []
+  },
+  {
+    "id": "catch_all",
+    "type": "catch",
+    "z": "tab_ponto",
+    "name": "qualquer erro",
+    "scope": null,
+    "uncaught": false,
+    "x": 140,
+    "y": 460,
+    "wires": [
+      [
+        "dbg_erro"
+      ]
+    ]
+  },
+  {
+    "id": "dbg_erro",
+    "type": "debug",
+    "z": "tab_ponto",
+    "name": "ERRO",
+    "active": true,
+    "tosidebar": true,
+    "console": true,
+    "tostatus": false,
+    "complete": "error.message",
+    "targetType": "msg",
+    "x": 370,
+    "y": 460,
+    "wires": []
+  },
+  {
+    "id": "c4",
+    "type": "comment",
+    "z": "tab_ponto",
+    "name": "4) PAINEL: a cada 10 s e logo após cada ponto, consulta as views e atualiza a tela",
+    "info": "",
+    "x": 260,
+    "y": 540,
+    "wires": []
+  },
+  {
+    "id": "inj_painel",
+    "type": "inject",
+    "z": "tab_ponto",
+    "name": "a cada 10 s",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "10",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "2",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 140,
+    "y": 600,
+    "wires": [
+      [
+        "delay_painel"
+      ]
+    ]
+  },
+  {
+    "id": "delay_painel",
+    "type": "delay",
+    "z": "tab_ponto",
+    "name": "no máx. 1 a cada 2 s",
+    "pauseType": "rate",
+    "timeout": "5",
+    "timeoutUnits": "seconds",
+    "rate": "1",
+    "nbRateUnits": "2",
+    "rateUnits": "second",
+    "randomFirst": "1",
+    "randomLast": "5",
+    "randomUnits": "seconds",
+    "drop": true,
+    "allowrate": false,
+    "outputs": 1,
+    "x": 380,
+    "y": 600,
+    "wires": [
+      [
+        "f_limpa"
+      ]
+    ]
+  },
+  {
+    "id": "f_limpa",
+    "type": "function",
+    "z": "tab_ponto",
+    "name": "mensagem limpa",
+    "func": "return { payload: null };",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 600,
+    "y": 600,
+    "wires": [
+      [
+        "pg_presenca",
+        "pg_hoje",
+        "pg_semana",
+        "pg_historico",
+        "pg_disp"
+      ]
+    ]
+  },
+  {
+    "id": "pg_presenca",
+    "type": "postgresql",
+    "z": "tab_ponto",
+    "name": "vw_presenca_atual",
+    "query": "SELECT nome, presente, to_char(desde AT TIME ZONE 'America/Sao_Paulo', 'HH24:MI') AS desde_txt, origem FROM vw_presenca_atual ORDER BY presente DESC, nome",
+    "postgreSQLConfig": "pg_supabase",
+    "split": false,
+    "rowsPerMsg": 1,
+    "outputs": 1,
+    "x": 820,
+    "y": 560,
+    "wires": [
+      [
+        "f_presenca"
+      ]
+    ]
+  },
+  {
+    "id": "f_presenca",
+    "type": "function",
+    "z": "tab_ponto",
+    "name": "formata presença",
+    "func": "const hm = (m) => Math.floor(Math.abs(m) / 60) + 'h ' + String(Math.abs(m) % 60).padStart(2, '0') + 'min';\nconst saldo = (m) => (m < 0 ? '-' : '+') + hm(m);\nconst origemTxt = (o) => o === 'botao' ? 'Botão (LoRa)' : o === 'ble' ? 'Automático (BLE)' : '-';\nconst rows = msg.payload || [];\nconst tabela = rows.map((r) => ({\n    'Funcionário': r.nome,\n    'Situação': r.presente ? '🟢 Presente' : '⚪ Ausente',\n    'Desde': r.desde_txt || '-',\n    'Origem': origemTxt(r.origem),\n}));\nconst n = rows.filter((r) => r.presente).length;\nreturn [\n    { payload: tabela },\n    { payload: n + ' presente(s) agora, de ' + rows.length + ' funcionário(s) ativo(s)' },\n];",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1040,
+    "y": 560,
+    "wires": [
+      [
+        "t_presenca"
+      ],
+      [
+        "x_presentes"
+      ]
+    ]
+  },
+  {
+    "id": "pg_hoje",
+    "type": "postgresql",
+    "z": "tab_ponto",
+    "name": "vw_jornada_diaria (hoje)",
+    "query": "SELECT nome, to_char(primeira_chegada AT TIME ZONE 'America/Sao_Paulo', 'HH24:MI') AS primeira, to_char(ultima_saida AT TIME ZONE 'America/Sao_Paulo', 'HH24:MI') AS ultima, minutos_trabalhados, carga_diaria_min, saldo_min, saida_pendente FROM vw_jornada_diaria WHERE dia = (now() AT TIME ZONE 'America/Sao_Paulo')::date ORDER BY nome",
+    "postgreSQLConfig": "pg_supabase",
+    "split": false,
+    "rowsPerMsg": 1,
+    "outputs": 1,
+    "x": 820,
+    "y": 620,
+    "wires": [
+      [
+        "f_hoje"
+      ]
+    ]
+  },
+  {
+    "id": "f_hoje",
+    "type": "function",
+    "z": "tab_ponto",
+    "name": "formata jornada",
+    "func": "const hm = (m) => Math.floor(Math.abs(m) / 60) + 'h ' + String(Math.abs(m) % 60).padStart(2, '0') + 'min';\nconst saldo = (m) => (m < 0 ? '-' : '+') + hm(m);\nconst origemTxt = (o) => o === 'botao' ? 'Botão (LoRa)' : o === 'ble' ? 'Automático (BLE)' : '-';\nconst rows = msg.payload || [];\nreturn { payload: rows.map((r) => ({\n    'Funcionário': r.nome,\n    'Chegada': r.primeira || '-',\n    'Saída': r.ultima || '-',\n    'Trabalhado': hm(r.minutos_trabalhados),\n    'Carga': hm(r.carga_diaria_min),\n    'Saldo': saldo(r.saldo_min),\n    'Obs.': r.saida_pendente ? 'saída não registrada' : '',\n})) };",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1040,
+    "y": 620,
+    "wires": [
+      [
+        "t_hoje"
+      ]
+    ]
+  },
+  {
+    "id": "pg_semana",
+    "type": "postgresql",
+    "z": "tab_ponto",
+    "name": "vw_jornada_semanal",
+    "query": "SELECT nome, minutos_trabalhados, carga_semanal_min, saldo_min FROM vw_jornada_semanal WHERE semana = date_trunc('week', now() AT TIME ZONE 'America/Sao_Paulo')::date ORDER BY nome",
+    "postgreSQLConfig": "pg_supabase",
+    "split": false,
+    "rowsPerMsg": 1,
+    "outputs": 1,
+    "x": 820,
+    "y": 680,
+    "wires": [
+      [
+        "f_semana"
+      ]
+    ]
+  },
+  {
+    "id": "f_semana",
+    "type": "function",
+    "z": "tab_ponto",
+    "name": "formata semana",
+    "func": "const hm = (m) => Math.floor(Math.abs(m) / 60) + 'h ' + String(Math.abs(m) % 60).padStart(2, '0') + 'min';\nconst saldo = (m) => (m < 0 ? '-' : '+') + hm(m);\nconst origemTxt = (o) => o === 'botao' ? 'Botão (LoRa)' : o === 'ble' ? 'Automático (BLE)' : '-';\nconst rows = msg.payload || [];\nconst tabela = rows.map((r) => ({\n    'Funcionário': r.nome,\n    'Trabalhado': hm(r.minutos_trabalhados),\n    'Carga semanal': hm(r.carga_semanal_min),\n    'Saldo': saldo(r.saldo_min),\n}));\n// Pontos do gráfico de barras: 2 séries (trabalhado x carga), em horas.\nconst h = (m) => Math.round(m / 6) / 10;\nconst grafico = [];\nrows.forEach((r) => {\n    grafico.push({ serie: 'Trabalhado (h)', nome: r.nome, horas: h(r.minutos_trabalhados) });\n    grafico.push({ serie: 'Carga semanal (h)', nome: r.nome, horas: h(r.carga_semanal_min) });\n});\nreturn [{ payload: tabela }, { payload: grafico }];",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1040,
+    "y": 680,
+    "wires": [
+      [
+        "t_semana"
+      ],
+      [
+        "g_semana"
+      ]
+    ]
+  },
+  {
+    "id": "pg_historico",
+    "type": "postgresql",
+    "z": "tab_ponto",
+    "name": "vw_historico",
+    "query": "SELECT to_char(ts_evento, 'DD/MM HH24:MI:SS') AS quando, nome, origem, tipo, contabilizado, motivo, rssi, fila FROM vw_historico ORDER BY ts_evento DESC, id DESC LIMIT 50",
+    "postgreSQLConfig": "pg_supabase",
+    "split": false,
+    "rowsPerMsg": 1,
+    "outputs": 1,
+    "x": 820,
+    "y": 740,
+    "wires": [
+      [
+        "f_hist"
+      ]
+    ]
+  },
+  {
+    "id": "f_hist",
+    "type": "function",
+    "z": "tab_ponto",
+    "name": "formata histórico",
+    "func": "const rows = msg.payload || [];\nreturn { payload: rows.map((r) => ({\n    'Quando': r.quando,\n    'Funcionário': r.nome,\n    'Tipo': r.tipo,\n    'Origem': r.origem === 'botao' ? 'Botão' : 'BLE',\n    'Conta horas': r.contabilizado ? 'sim' : 'não',\n    'Motivo': r.motivo || '',\n    'Sinal': r.rssi !== null && r.rssi !== undefined ? r.rssi + ' dBm' : '',\n    'Fila': r.fila ? 'sim' : '',\n})) };",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1040,
+    "y": 740,
+    "wires": [
+      [
+        "t_hist"
+      ]
+    ]
+  },
+  {
+    "id": "pg_disp",
+    "type": "postgresql",
+    "z": "tab_ponto",
+    "name": "vw_dispositivos",
+    "query": "SELECT tipo, identificador, funcionario_nome, firmware_versao, to_char(ultimo_contato AT TIME ZONE 'America/Sao_Paulo', 'DD/MM HH24:MI:SS') AS ultimo_contato, online FROM vw_dispositivos ORDER BY tipo, identificador",
+    "postgreSQLConfig": "pg_supabase",
+    "split": false,
+    "rowsPerMsg": 1,
+    "outputs": 1,
+    "x": 820,
+    "y": 800,
+    "wires": [
+      [
+        "f_disp"
+      ]
+    ]
+  },
+  {
+    "id": "f_disp",
+    "type": "function",
+    "z": "tab_ponto",
+    "name": "formata dispositivos",
+    "func": "const rows = msg.payload || [];\nconst tipos = { cracha: 'Crachá', gateway: 'Gateway', pc: 'PC' };\nreturn { payload: rows.map((r) => ({\n    'Tipo': tipos[r.tipo] || r.tipo,\n    'Identificador': r.identificador,\n    'Dono': r.funcionario_nome || '-',\n    'Firmware': r.firmware_versao || '-',\n    'Último contato': r.ultimo_contato || 'nunca',\n    'Status': r.online ? '🟢 online' : '🔴 offline',\n})) };",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1040,
+    "y": 800,
+    "wires": [
+      [
+        "t_disp"
+      ]
+    ]
+  },
+  {
+    "id": "c5",
+    "type": "comment",
+    "z": "tab_ponto",
+    "name": "5) COMANDOS: botões do painel -> tabela \"comando\" + MQTT unifesp/ponto/cmd/{badge}",
+    "info": "",
+    "x": 260,
+    "y": 880,
+    "wires": []
+  },
+  {
+    "id": "in_ota_url",
+    "type": "ui-text-input",
+    "z": "tab_ponto",
+    "group": "g_cmd",
+    "name": "URL do .bin (OTA)",
+    "label": "URL do .bin (OTA)",
+    "order": 3,
+    "width": 0,
+    "height": 0,
+    "topicType": "msg",
+    "mode": "text",
+    "tooltip": "",
+    "delay": 300,
+    "passthru": false,
+    "sendOnDelay": false,
+    "sendOnBlur": true,
+    "sendOnEnter": true,
+    "className": "",
+    "clearable": false,
+    "sendOnClear": false,
+    "icon": "",
+    "iconPosition": "left",
+    "payload": "",
+    "payloadType": "str",
+    "topic": "topic",
+    "x": 160,
+    "y": 940,
+    "wires": [
+      [
+        "f_ota_url"
+      ]
+    ]
+  },
+  {
+    "id": "in_ota_ver",
+    "type": "ui-text-input",
+    "z": "tab_ponto",
+    "group": "g_cmd",
+    "name": "Versão (OTA)",
+    "label": "Versão (OTA)",
+    "order": 4,
+    "width": 0,
+    "height": 0,
+    "topicType": "msg",
+    "mode": "text",
+    "tooltip": "",
+    "delay": 300,
+    "passthru": false,
+    "sendOnDelay": false,
+    "sendOnBlur": true,
+    "sendOnEnter": true,
+    "className": "",
+    "clearable": false,
+    "sendOnClear": false,
+    "icon": "",
+    "iconPosition": "left",
+    "payload": "",
+    "payloadType": "str",
+    "topic": "topic",
+    "x": 160,
+    "y": 1000,
+    "wires": [
+      [
+        "f_ota_ver"
+      ]
+    ]
+  },
+  {
+    "id": "f_ota_url",
+    "type": "function",
+    "z": "tab_ponto",
+    "name": "guarda URL",
+    "func": "flow.set('ota_url', String(msg.payload || '').trim()); return null;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 400,
+    "y": 940,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "f_ota_ver",
+    "type": "function",
+    "z": "tab_ponto",
+    "name": "guarda versão",
+    "func": "flow.set('ota_versao', String(msg.payload || '').trim()); return null;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 400,
+    "y": 1000,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "b_bipe",
+    "type": "ui-button",
+    "z": "tab_ponto",
+    "group": "g_cmd",
+    "name": "BIPE (testar o crachá 101)",
+    "label": "BIPE (testar o crachá 101)",
+    "order": 1,
+    "width": 0,
+    "height": 0,
+    "emulateClick": false,
+    "tooltip": "",
+    "color": "",
+    "bgcolor": "",
+    "className": "",
+    "icon": "",
+    "iconPosition": "left",
+    "payload": "BIPE",
+    "payloadType": "str",
+    "topic": "topic",
+    "topicType": "msg",
+    "buttonColor": "#0d74ce",
+    "textColor": "#ffffff",
+    "iconColor": "",
+    "enableClick": true,
+    "enablePointerdown": false,
+    "pointerdownPayload": "",
+    "pointerdownPayloadType": "str",
+    "enablePointerup": false,
+    "pointerupPayload": "",
+    "pointerupPayloadType": "str",
+    "x": 160,
+    "y": 1060,
+    "wires": [
+      [
+        "f_cmd"
+      ]
+    ]
+  },
+  {
+    "id": "b_ota",
+    "type": "ui-button",
+    "z": "tab_ponto",
+    "group": "g_cmd",
+    "name": "ATUALIZAR FIRMWARE (OTA)",
+    "label": "ATUALIZAR FIRMWARE (OTA)",
+    "order": 2,
+    "width": 0,
+    "height": 0,
+    "emulateClick": false,
+    "tooltip": "",
+    "color": "",
+    "bgcolor": "",
+    "className": "",
+    "icon": "",
+    "iconPosition": "left",
+    "payload": "OTA",
+    "payloadType": "str",
+    "topic": "topic",
+    "topicType": "msg",
+    "buttonColor": "#b45309",
+    "textColor": "#ffffff",
+    "iconColor": "",
+    "enableClick": true,
+    "enablePointerdown": false,
+    "pointerdownPayload": "",
+    "pointerdownPayloadType": "str",
+    "enablePointerup": false,
+    "pointerupPayload": "",
+    "pointerupPayloadType": "str",
+    "x": 160,
+    "y": 1120,
+    "wires": [
+      [
+        "f_cmd"
+      ]
+    ]
+  },
+  {
+    "id": "f_cmd",
+    "type": "function",
+    "z": "tab_ponto",
+    "name": "monta comando",
+    "func": "const BADGE = '101';              // crachá da demonstração\nconst cmd = msg.payload;          // 'BIPE' ou 'OTA' (vem do botão)\nlet parametros = {};\nif (cmd === 'OTA') {\n    const url = flow.get('ota_url');\n    const versao = flow.get('ota_versao');\n    if (!url || !versao) {\n        node.status({ fill: 'red', shape: 'ring', text: 'faltam URL e versão' });\n        return [null, { payload: 'Preencha a URL do .bin e a versão antes de pedir o OTA.' }];\n    }\n    parametros = { url: url, versao: versao };\n}\nmsg.badge = BADGE;\nmsg.comando = cmd;\nmsg.parametros = parametros;\n// Registra o comando na tabela \"comando\" e devolve o id gerado.\nmsg.params = [BADGE, cmd, JSON.stringify(parametros)];\nmsg.query = \"INSERT INTO comando (dispositivo_id, comando, parametros, status, enviado_em) \" +\n            \"SELECT id, $2::text, $3::jsonb, 'ENVIADO', now() FROM dispositivo \" +\n            \"WHERE tipo = 'cracha' AND identificador = $1::text RETURNING id\";\nreturn [msg, null];",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 400,
+    "y": 1090,
+    "wires": [
+      [
+        "pg_cmd"
+      ],
+      [
+        "x_cmd"
+      ]
+    ]
+  },
+  {
+    "id": "pg_cmd",
+    "type": "postgresql",
+    "z": "tab_ponto",
+    "name": "INSERT comando",
+    "query": "SELECT 1",
+    "postgreSQLConfig": "pg_supabase",
+    "split": false,
+    "rowsPerMsg": 1,
+    "outputs": 1,
+    "x": 620,
+    "y": 1060,
+    "wires": [
+      [
+        "f_pub"
+      ]
+    ]
+  },
+  {
+    "id": "f_pub",
+    "type": "function",
+    "z": "tab_ponto",
+    "name": "prepara MQTT",
+    "func": "const r = (msg.payload || [])[0];\nif (!r) {\n    return [null, { payload: 'Dispositivo do crachá ' + msg.badge + ' não encontrado na tabela dispositivo.' }];\n}\nconst corpo = Object.assign({ id: Number(r.id), comando: msg.comando }, msg.parametros);\nreturn [\n    { topic: 'unifesp/ponto/cmd/' + msg.badge, payload: JSON.stringify(corpo), qos: 1, retain: false },\n    { payload: msg.comando + ' enviado ao crachá ' + msg.badge + ' (comando #' + r.id + ') às ' +\n               new Date().toLocaleTimeString('pt-BR') + '. Aguardando o crachá (confirmação ainda não implementada).' },\n];",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 820,
+    "y": 1060,
+    "wires": [
+      [
+        "mqtt_cmd"
+      ],
+      [
+        "x_cmd"
+      ]
+    ]
+  },
+  {
+    "id": "mqtt_cmd",
+    "type": "mqtt out",
+    "z": "tab_ponto",
+    "name": "unifesp/ponto/cmd/{badge}",
+    "topic": "",
+    "qos": "1",
+    "retain": "false",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "broker_local",
+    "x": 1060,
+    "y": 1040,
+    "wires": []
+  },
+  {
+    "id": "c6",
+    "type": "comment",
+    "z": "tab_ponto",
+    "name": "6) EXPORTAR CSV (espelho de ponto): http://127.0.0.1:1880/exportar/historico.csv e jornada.csv",
+    "info": "",
+    "x": 260,
+    "y": 1180,
+    "wires": []
+  },
+  {
+    "id": "http_hist",
+    "type": "http in",
+    "z": "tab_ponto",
+    "name": "",
+    "url": "/exportar/historico.csv",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 170,
+    "y": 1240,
+    "wires": [
+      [
+        "pg_csv_hist"
+      ]
+    ]
+  },
+  {
+    "id": "pg_csv_hist",
+    "type": "postgresql",
+    "z": "tab_ponto",
+    "name": "vw_historico (tudo)",
+    "query": "SELECT to_char(ts_evento, 'YYYY-MM-DD HH24:MI:SS') AS data_hora, nome, badge_id, origem, tipo, contabilizado, motivo, fila, rssi, snr FROM vw_historico ORDER BY ts_evento, id",
+    "postgreSQLConfig": "pg_supabase",
+    "split": false,
+    "rowsPerMsg": 1,
+    "outputs": 1,
+    "x": 400,
+    "y": 1240,
+    "wires": [
+      [
+        "f_csv"
+      ]
+    ]
+  },
+  {
+    "id": "http_jor",
+    "type": "http in",
+    "z": "tab_ponto",
+    "name": "",
+    "url": "/exportar/jornada.csv",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 170,
+    "y": 1300,
+    "wires": [
+      [
+        "pg_csv_jor"
+      ]
+    ]
+  },
+  {
+    "id": "pg_csv_jor",
+    "type": "postgresql",
+    "z": "tab_ponto",
+    "name": "vw_jornada_diaria (tudo)",
+    "query": "SELECT nome, to_char(dia, 'YYYY-MM-DD') AS dia, to_char(primeira_chegada AT TIME ZONE 'America/Sao_Paulo', 'HH24:MI') AS primeira_chegada, to_char(ultima_saida AT TIME ZONE 'America/Sao_Paulo', 'HH24:MI') AS ultima_saida, minutos_trabalhados, carga_diaria_min, saldo_min, saida_pendente FROM vw_jornada_diaria ORDER BY dia, nome",
+    "postgreSQLConfig": "pg_supabase",
+    "split": false,
+    "rowsPerMsg": 1,
+    "outputs": 1,
+    "x": 400,
+    "y": 1300,
+    "wires": [
+      [
+        "f_csv"
+      ]
+    ]
+  },
+  {
+    "id": "f_csv",
+    "type": "function",
+    "z": "tab_ponto",
+    "name": "monta CSV",
+    "func": "const rows = msg.payload || [];\nconst esc = (v) => {\n    if (v === null || v === undefined) return '';\n    const s = String(v);\n    return /[\";\\r\\n]/.test(s) ? '\"' + s.replace(/\"/g, '\"\"') + '\"' : s;\n};\nlet csv = '';\nif (rows.length) {\n    const cols = Object.keys(rows[0]);\n    csv = [cols.join(';')].concat(rows.map((r) => cols.map((c) => esc(r[c])).join(';'))).join('\\r\\n');\n}\n// BOM no início: o Excel reconhece os acentos. Separador \";\" (padrão do Excel em português).\nmsg.payload = '\\ufeff' + csv;\nconst nome = msg.req.path.split('/').pop();\nmsg.headers = {\n    'Content-Type': 'text/csv; charset=utf-8',\n    'Content-Disposition': 'attachment; filename=\"' + nome + '\"',\n};\nmsg.statusCode = 200;\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 620,
+    "y": 1270,
+    "wires": [
+      [
+        "http_resp"
+      ]
+    ]
+  },
+  {
+    "id": "http_resp",
+    "type": "http response",
+    "z": "tab_ponto",
+    "name": "",
+    "statusCode": "",
+    "headers": {},
+    "x": 820,
+    "y": 1270,
+    "wires": []
+  },
+  {
+    "id": "ui_base",
+    "type": "ui-base",
+    "name": "Crachá Inteligente de Ponto",
+    "path": "/dashboard",
+    "appIcon": "",
+    "includeClientData": true,
+    "acceptsClientConfig": [
+      "ui-notification",
+      "ui-control"
+    ],
+    "showPathInSidebar": false,
+    "headerContent": "page",
+    "navigationStyle": "default",
+    "titleBarStyle": "default",
+    "showReconnectNotification": true,
+    "notificationDisplayTime": 1,
+    "showDisconnectNotification": true,
+    "allowInstall": false
+  },
+  {
+    "id": "ui_theme",
+    "type": "ui-theme",
+    "name": "Tema Ponto",
+    "colors": {
+      "surface": "#ffffff",
+      "primary": "#0d74ce",
+      "bgPage": "#f4f6fb",
+      "groupBg": "#ffffff",
+      "groupOutline": "#d9d9e0"
+    },
+    "sizes": {
+      "density": "default",
+      "pagePadding": "12px",
+      "groupGap": "12px",
+      "groupBorderRadius": "8px",
+      "widgetGap": "12px"
+    }
+  },
+  {
+    "id": "ui_page",
+    "type": "ui-page",
+    "name": "Painel de Gerência",
+    "ui": "ui_base",
+    "path": "/",
+    "icon": "home",
+    "layout": "grid",
+    "theme": "ui_theme",
+    "order": 1,
+    "className": "",
+    "visible": "true",
+    "disabled": "false",
+    "breakpoints": [
+      {
+        "name": "Default",
+        "px": "0",
+        "cols": "3"
+      },
+      {
+        "name": "Tablet",
+        "px": "576",
+        "cols": "6"
+      },
+      {
+        "name": "Small Desktop",
+        "px": "768",
+        "cols": "9"
+      },
+      {
+        "name": "Desktop",
+        "px": "1024",
+        "cols": "12"
+      }
+    ]
+  },
+  {
+    "id": "g_pres",
+    "type": "ui-group",
+    "name": "Quem está presente agora",
+    "page": "ui_page",
+    "width": "6",
+    "height": "1",
+    "order": 1,
+    "showTitle": true,
+    "className": "",
+    "visible": "true",
+    "disabled": "false",
+    "groupType": "default"
+  },
+  {
+    "id": "g_disp",
+    "type": "ui-group",
+    "name": "Dispositivos",
+    "page": "ui_page",
+    "width": "6",
+    "height": "1",
+    "order": 2,
+    "showTitle": true,
+    "className": "",
+    "visible": "true",
+    "disabled": "false",
+    "groupType": "default"
+  },
+  {
+    "id": "g_hoje",
+    "type": "ui-group",
+    "name": "Jornada de hoje",
+    "page": "ui_page",
+    "width": "12",
+    "height": "1",
+    "order": 3,
+    "showTitle": true,
+    "className": "",
+    "visible": "true",
+    "disabled": "false",
+    "groupType": "default"
+  },
+  {
+    "id": "g_sem",
+    "type": "ui-group",
+    "name": "Semana (segunda a domingo)",
+    "page": "ui_page",
+    "width": "6",
+    "height": "1",
+    "order": 4,
+    "showTitle": true,
+    "className": "",
+    "visible": "true",
+    "disabled": "false",
+    "groupType": "default"
+  },
+  {
+    "id": "g_graf",
+    "type": "ui-group",
+    "name": "Horas na semana",
+    "page": "ui_page",
+    "width": "6",
+    "height": "1",
+    "order": 5,
+    "showTitle": true,
+    "className": "",
+    "visible": "true",
+    "disabled": "false",
+    "groupType": "default"
+  },
+  {
+    "id": "g_hist",
+    "type": "ui-group",
+    "name": "Histórico (últimos 50 pontos)",
+    "page": "ui_page",
+    "width": "12",
+    "height": "1",
+    "order": 6,
+    "showTitle": true,
+    "className": "",
+    "visible": "true",
+    "disabled": "false",
+    "groupType": "default"
+  },
+  {
+    "id": "g_cmd",
+    "type": "ui-group",
+    "name": "Comandos para o crachá",
+    "page": "ui_page",
+    "width": "6",
+    "height": "1",
+    "order": 7,
+    "showTitle": true,
+    "className": "",
+    "visible": "true",
+    "disabled": "false",
+    "groupType": "default"
+  },
+  {
+    "id": "g_csv",
+    "type": "ui-group",
+    "name": "Exportar (CSV)",
+    "page": "ui_page",
+    "width": "6",
+    "height": "1",
+    "order": 8,
+    "showTitle": true,
+    "className": "",
+    "visible": "true",
+    "disabled": "false",
+    "groupType": "default"
+  },
+  {
+    "id": "x_presentes",
+    "type": "ui-text",
+    "z": "tab_ponto",
+    "group": "g_pres",
+    "order": 1,
+    "width": 0,
+    "height": 0,
+    "name": "",
+    "label": "",
+    "format": "{{msg.payload}}",
+    "layout": "row-left",
+    "style": true,
+    "font": "",
+    "fontSize": 20,
+    "color": "#1f2937",
+    "wrapText": true,
+    "className": "",
+    "value": "payload",
+    "valueType": "msg",
+    "x": 1280,
+    "y": 540,
+    "wires": []
+  },
+  {
+    "id": "t_presenca",
+    "type": "ui-table",
+    "z": "tab_ponto",
+    "group": "g_pres",
+    "name": "Presença",
+    "label": "Presença",
+    "order": 2,
+    "width": 0,
+    "height": 0,
+    "maxrows": 0,
+    "passthru": false,
+    "autocols": true,
+    "showSearch": false,
+    "deselect": true,
+    "selectionType": "none",
+    "columns": [],
+    "mobileBreakpoint": "sm",
+    "mobileBreakpointType": "defaults",
+    "action": "replace",
+    "className": "",
+    "x": 1280,
+    "y": 580,
+    "wires": []
+  },
+  {
+    "id": "t_disp",
+    "type": "ui-table",
+    "z": "tab_ponto",
+    "group": "g_disp",
+    "name": "Dispositivos",
+    "label": "Dispositivos",
+    "order": 1,
+    "width": 0,
+    "height": 0,
+    "maxrows": 0,
+    "passthru": false,
+    "autocols": true,
+    "showSearch": false,
+    "deselect": true,
+    "selectionType": "none",
+    "columns": [],
+    "mobileBreakpoint": "sm",
+    "mobileBreakpointType": "defaults",
+    "action": "replace",
+    "className": "",
+    "x": 1280,
+    "y": 820,
+    "wires": []
+  },
+  {
+    "id": "t_hoje",
+    "type": "ui-table",
+    "z": "tab_ponto",
+    "group": "g_hoje",
+    "name": "Jornada de hoje",
+    "label": "Jornada de hoje",
+    "order": 1,
+    "width": 0,
+    "height": 0,
+    "maxrows": 0,
+    "passthru": false,
+    "autocols": true,
+    "showSearch": false,
+    "deselect": true,
+    "selectionType": "none",
+    "columns": [],
+    "mobileBreakpoint": "sm",
+    "mobileBreakpointType": "defaults",
+    "action": "replace",
+    "className": "",
+    "x": 1280,
+    "y": 640,
+    "wires": []
+  },
+  {
+    "id": "t_semana",
+    "type": "ui-table",
+    "z": "tab_ponto",
+    "group": "g_sem",
+    "name": "Semana",
+    "label": "Semana",
+    "order": 1,
+    "width": 0,
+    "height": 0,
+    "maxrows": 0,
+    "passthru": false,
+    "autocols": true,
+    "showSearch": false,
+    "deselect": true,
+    "selectionType": "none",
+    "columns": [],
+    "mobileBreakpoint": "sm",
+    "mobileBreakpointType": "defaults",
+    "action": "replace",
+    "className": "",
+    "x": 1280,
+    "y": 700,
+    "wires": []
+  },
+  {
+    "id": "g_semana",
+    "type": "ui-chart",
+    "z": "tab_ponto",
+    "group": "g_graf",
+    "name": "Horas na semana",
+    "label": "",
+    "order": 1,
+    "chartType": "bar",
+    "category": "serie",
+    "categoryType": "property",
+    "xAxisLabel": "",
+    "xAxisProperty": "nome",
+    "xAxisPropertyType": "property",
+    "xAxisType": "category",
+    "xAxisFormat": "",
+    "xAxisFormatType": "auto",
+    "xmin": "",
+    "xmax": "",
+    "ymin": "",
+    "ymax": "",
+    "yAxisLabel": "horas",
+    "yAxisProperty": "horas",
+    "yAxisPropertyType": "property",
+    "bins": 10,
+    "action": "replace",
+    "stackSeries": false,
+    "pointShape": "circle",
+    "pointRadius": 4,
+    "showLegend": true,
+    "removeOlderUnit": "3600",
+    "removeOlderPoints": "",
+    "colors": [
+      "#0d74ce",
+      "#9ca3af",
+      "#FF7F0E",
+      "#2CA02C",
+      "#A347E1",
+      "#D62728",
+      "#FF9896",
+      "#9467BD",
+      "#C5B0D5"
+    ],
+    "textColor": [
+      "#666666"
+    ],
+    "textColorDefault": true,
+    "gridColor": [
+      "#e5e5e5"
+    ],
+    "gridColorDefault": true,
+    "width": 0,
+    "height": 6,
+    "className": "",
+    "interpolation": "linear",
+    "x": 1280,
+    "y": 760,
+    "wires": []
+  },
+  {
+    "id": "t_hist",
+    "type": "ui-table",
+    "z": "tab_ponto",
+    "group": "g_hist",
+    "name": "Histórico",
+    "label": "Histórico",
+    "order": 1,
+    "width": 0,
+    "height": 0,
+    "maxrows": 0,
+    "passthru": false,
+    "autocols": true,
+    "showSearch": false,
+    "deselect": true,
+    "selectionType": "none",
+    "columns": [],
+    "mobileBreakpoint": "sm",
+    "mobileBreakpointType": "defaults",
+    "action": "replace",
+    "className": "",
+    "x": 1280,
+    "y": 880,
+    "wires": []
+  },
+  {
+    "id": "x_cmd",
+    "type": "ui-text",
+    "z": "tab_ponto",
+    "group": "g_cmd",
+    "order": 5,
+    "width": 0,
+    "height": 0,
+    "name": "",
+    "label": "",
+    "format": "{{msg.payload}}",
+    "layout": "row-left",
+    "style": true,
+    "font": "",
+    "fontSize": 15,
+    "color": "#1f2937",
+    "wrapText": true,
+    "className": "",
+    "value": "payload",
+    "valueType": "msg",
+    "x": 1060,
+    "y": 1120,
+    "wires": []
+  },
+  {
+    "id": "md_csv",
+    "type": "ui-markdown",
+    "z": "tab_ponto",
+    "group": "g_csv",
+    "name": "links CSV",
+    "order": 1,
+    "width": 0,
+    "height": 0,
+    "content": "Espelho de ponto para abrir no Excel (separador \";\"):\n\n- [Baixar histórico completo (CSV)](/exportar/historico.csv)\n- [Baixar jornada diária (CSV)](/exportar/jornada.csv)\n",
+    "x": 1280,
+    "y": 1240,
+    "wires": []
+  }
+]

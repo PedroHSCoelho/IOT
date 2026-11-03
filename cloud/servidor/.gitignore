@@ -1,0 +1,9 @@
+node_modules/
+# Arquivos que o Node-RED cria sozinho (o fluxo, flows.json, FICA no Git)
+nodered-dados/.config*.json
+nodered-dados/.npm/
+nodered-dados/.sessions.json
+nodered-dados/context/
+nodered-dados/lib/
+nodered-dados/flows_cred.json
+nodered-dados/node_modules/

@@ -1,0 +1,8 @@
+# docker-compose.yml — OPCIONAL.
+#
+# O banco de dados NÃO roda aqui: ele está no Supabase (decisão de 03/11/2026,
+# porque o notebook não permite instalar Docker). Este arquivo só serve se
+# alguém da equipe conseguir rodar Docker, para subir Mosquitto e Node-RED.
+# Os serviços serão adicionados no passo 8 do BANCO_DE_DADOS.md.
+
+services: {}

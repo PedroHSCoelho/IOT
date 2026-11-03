@@ -1,0 +1,19 @@
+{
+  "name": "ponto-unifesp-servidor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Broker MQTT (aedes) + Node-RED do Cracha Inteligente de Ponto",
+  "scripts": {
+    "broker": "node broker.mjs",
+    "nodered": "node --env-file=../.env ./node_modules/node-red/red.js --userDir ./nodered-dados",
+    "publicar-teste": "node publicar_teste.mjs",
+    "gerar-fluxo": "node gerar_fluxo.mjs"
+  },
+  "dependencies": {
+    "@flowfuse/node-red-dashboard": "^1.34.1",
+    "aedes": "^1.2.0",
+    "mqtt": "^5.16.1",
+    "node-red": "^5.0.9",
+    "node-red-contrib-postgresql": "^0.16.2"
+  }
+}
