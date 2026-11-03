@@ -13,6 +13,7 @@ Um crachá (Heltec LoRa 32 V3) bate ponto pelo botão (LoRa → gateway) e por B
 - Nunca desligue verificação de TLS (o sistema de segurança do Claude Code bloqueia). A conexão ao Supabase usa `cloud/servidor/prod-ca-2021.crt`.
 
 ## Mapa do repositório
+Remoto: https://github.com/PedroHSCoelho/IOT (branch `main`). `README.md` é a porta de entrada; `diagrama/` tem o diagrama de blocos.
 ```text
 BANCO_DE_DADOS.md        especificação do banco (regras R1-R8, testes T1-T10)
 PENDENCIAS.md            estado e pendências  ← leia primeiro
