@@ -10,6 +10,7 @@
 --   * SELECT nas views vw_*                   (alimenta o painel)
 --   * SELECT/INSERT/UPDATE em comando         (painel envia OTA/BIPE e lê o status)
 --   * UPDATE em dispositivo.ultimo_contato    (tópicos de status do gateway e do PC)
+--   * UPDATE em dispositivo.firmware_versao   (confirmação de OTA pelo crachá)
 --
 -- A SENHA NÃO FICA NESTE ARQUIVO (ele vai para o Git). Depois de rodar o script,
 -- defina a senha UMA vez, no SQL Editor do Supabase, e guarde no cloud/.env:
@@ -78,9 +79,10 @@ GRANT SELECT, INSERT, UPDATE ON comando TO nodered;
 GRANT USAGE ON SEQUENCE comando_id_seq TO nodered;
 
 -- dispositivo: SELECT só das colunas de identificação (o UPDATE precisa achar a
--- linha com WHERE) e UPDATE só de ultimo_contato.
-GRANT SELECT (id, tipo, identificador) ON dispositivo TO nodered;
-GRANT UPDATE (ultimo_contato)          ON dispositivo TO nodered;
+-- linha com WHERE) e UPDATE só de ultimo_contato e firmware_versao (esta última é
+-- atualizada quando o crachá confirma um OTA, tópico unifesp/ponto/cmd/{badge}/ack).
+GRANT SELECT (id, tipo, identificador)       ON dispositivo TO nodered;
+GRANT UPDATE (ultimo_contato, firmware_versao) ON dispositivo TO nodered;
 
 
 -- 4) Políticas de RLS (Row Level Security) SÓ para o "nodered".

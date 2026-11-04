@@ -241,8 +241,9 @@ BEGIN
     BEGIN UPDATE funcionario SET nome = 'x';          resultados := resultados || 'UPDATE_funcionario:PERMITIDO'::TEXT;
     EXCEPTION WHEN insufficient_privilege THEN        resultados := resultados || 'UPDATE_funcionario:negado'::TEXT; END;
 
-    BEGIN UPDATE dispositivo SET firmware_versao = 'x'; resultados := resultados || 'UPDATE_firmware:PERMITIDO'::TEXT;
-    EXCEPTION WHEN insufficient_privilege THEN        resultados := resultados || 'UPDATE_firmware:negado'::TEXT; END;
+    -- (firmware_versao e ultimo_contato PODEM ser alterados; as demais colunas, não)
+    BEGIN UPDATE dispositivo SET identificador = 'x'; resultados := resultados || 'UPDATE_identificador:PERMITIDO'::TEXT;
+    EXCEPTION WHEN insufficient_privilege THEN        resultados := resultados || 'UPDATE_identificador:negado'::TEXT; END;
 
     -- O que DEVE funcionar:
     BEGIN SELECT * INTO r FROM registrar_ponto(102, 'botao', 5001, base + interval '1 min');
@@ -262,6 +263,11 @@ BEGIN
           GET DIAGNOSTICS n = ROW_COUNT;
           resultados := resultados || (CASE WHEN n = 1 THEN 'UPDATE_ultimo_contato:ok' ELSE 'UPDATE_ultimo_contato:' || n || ' linhas' END);
     EXCEPTION WHEN OTHERS THEN resultados := resultados || ('UPDATE_ultimo_contato:ERRO ' || SQLERRM); END;
+
+    BEGIN UPDATE dispositivo SET firmware_versao = '9.9' WHERE identificador = '101';
+          GET DIAGNOSTICS n = ROW_COUNT;
+          resultados := resultados || (CASE WHEN n = 1 THEN 'UPDATE_firmware:ok' ELSE 'UPDATE_firmware:' || n || ' linhas' END);
+    EXCEPTION WHEN OTHERS THEN resultados := resultados || ('UPDATE_firmware:ERRO ' || SQLERRM); END;
 
     BEGIN INSERT INTO comando (dispositivo_id, comando) SELECT id, 'BIPE' FROM dispositivo WHERE identificador = '101';
           GET DIAGNOSTICS n = ROW_COUNT;
@@ -287,11 +293,11 @@ BEGIN
     RESET ROLE;
 
     PERFORM pg_temp.chk('S1', 'nodered: tabelas fechadas, só o necessário aberto',
-        'DROP:negado|SELECT_funcionario:negado|SELECT_evento:negado|DELETE_evento:negado|UPDATE_funcionario:negado|UPDATE_firmware:negado|registrar_ponto:ok|views:ok|UPDATE_ultimo_contato:ok|INSERT_comando:ok',
-        array_to_string(resultados[1:10], '|'));
+        'DROP:negado|SELECT_funcionario:negado|SELECT_evento:negado|DELETE_evento:negado|UPDATE_funcionario:negado|UPDATE_identificador:negado|registrar_ponto:ok|views:ok|UPDATE_ultimo_contato:ok|UPDATE_firmware:ok|INSERT_comando:ok',
+        array_to_string(resultados[1:11], '|'));
     PERFORM pg_temp.chk('S2', 'anon/authenticated: tudo negado',
         'anon_funcionario:negado|anon_vw_historico:negado|anon_registrar_ponto:negado|auth_evento:negado',
-        array_to_string(resultados[11:14], '|'));
+        array_to_string(resultados[12:15], '|'));
 END $$;
 
 

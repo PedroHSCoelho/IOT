@@ -70,19 +70,37 @@ try { obj = JSON.parse(texto); } catch (e) { /* texto simples, ex.: online */ }
 // O gateway pode avisar que caiu ("offline"), em texto ou JSON.
 const offline = /^offline$/i.test(texto) ||
                 (obj && (obj.online === false || /^offline$/i.test(String(obj.status || obj.estado || ''))));
+const ehGateway = msg.topic.includes('/gateway/');
+
+// O estado do gateway (online/offline + qualidade do LoRa) fica na MEMÓRIA do fluxo, só para o
+// painel mostrar. Não vai para o banco. Se o Node-RED reiniciar, a mensagem "retained" que o
+// broker guardou devolve esse estado assim que o fluxo se inscreve de novo.
+if (ehGateway) {
+    const o = obj && typeof obj === 'object' ? obj : {};
+    const num = (v) => (typeof v === 'number' && isFinite(v) ? v : null);
+    flow.set('gw', {
+        estado: offline ? 'offline' : 'online',
+        rssi: num(o.rssi ?? o.rssi_lora),
+        snr: num(o.snr),
+        quando: Date.now(),
+    });
+}
+
 if (offline) {
-    node.status({ fill: 'grey', shape: 'ring', text: 'offline (ignorado)' });
-    return null;
+    // "offline" (inclusive o Last Will) NÃO conta como contato: não mexe em ultimo_contato.
+    // Só manda atualizar o painel (2a saída).
+    node.status({ fill: 'grey', shape: 'ring', text: 'offline (só painel)' });
+    return [null, ehGateway ? { payload: null } : null];
 }
 
 let id = obj && typeof obj === 'object' ? (obj.id ?? null) : null;
 let tipo;
-if (msg.topic.includes('/gateway/')) { tipo = 'gateway'; id = id ?? 'gw-lab'; }
-else                                 { tipo = 'pc';      id = id ?? 'pc-lab-01'; }
+if (ehGateway) { tipo = 'gateway'; id = id ?? 'gw-lab'; }
+else           { tipo = 'pc';      id = id ?? 'pc-lab-01'; }
 
 msg.params = [tipo, id];
 msg.query = "UPDATE dispositivo SET ultimo_contato = now() WHERE tipo = $1 AND identificador = $2";
-return msg;`
+return [msg, null];`
 
 // ---- A3. Painel: formatação das tabelas -----------------------------
 
@@ -149,14 +167,29 @@ return { payload: rows.map((r) => ({
 
 const formataDispositivos = `const rows = msg.payload || [];
 const tipos = { cracha: 'Crachá', gateway: 'Gateway', pc: 'PC' };
-return { payload: rows.map((r) => ({
+const tabela = rows.map((r) => ({
     'Tipo': tipos[r.tipo] || r.tipo,
     'Identificador': r.identificador,
     'Dono': r.funcionario_nome || '-',
     'Firmware': r.firmware_versao || '-',
     'Último contato': r.ultimo_contato || 'nunca',
     'Status': r.online ? '🟢 online' : '🔴 offline',
-})) };`
+}));
+
+// Linha de texto com o aviso do gateway (online/offline) e a qualidade do LoRa.
+const gw = flow.get('gw');
+let txt;
+if (!gw) {
+    txt = 'Gateway: nenhum aviso recebido ainda.';
+} else {
+    const seg = Math.max(0, Math.round((Date.now() - gw.quando) / 1000));
+    const ha = seg < 60 ? seg + ' s' : Math.floor(seg / 60) + ' min';
+    txt = 'Gateway: ' + (gw.estado === 'online' ? '🟢 online' : '🔴 offline (avisou que caiu)') +
+          (gw.rssi !== null ? ' · RSSI ' + gw.rssi + ' dBm' : '') +
+          (gw.snr !== null ? ' · SNR ' + gw.snr + ' dB' : '') +
+          ' · último aviso há ' + ha;
+}
+return [{ payload: tabela }, { payload: txt }];`
 
 // ---- A4. Painel: comandos para o crachá (BIPE / OTA) -----------------
 
@@ -194,8 +227,65 @@ const corpo = Object.assign({ id: Number(r.id), comando: msg.comando }, msg.para
 return [
     { topic: 'unifesp/ponto/cmd/' + msg.badge, payload: JSON.stringify(corpo), qos: 1, retain: false },
     { payload: msg.comando + ' enviado ao crachá ' + msg.badge + ' (comando #' + r.id + ') às ' +
-               new Date().toLocaleTimeString('pt-BR') + '. Aguardando o crachá (confirmação ainda não implementada).' },
+               new Date().toLocaleTimeString('pt-BR') + '. Aguardando a confirmação (ACK) do crachá.' },
 ];`
+
+// ---- A4b. Confirmação (ACK) do crachá --------------------------------
+// O crachá responde em  unifesp/ponto/cmd/{badge}/ack  com  {"id":12,"ok":true,"versao":"2.0"}
+//   id     = número do comando (o mesmo que o painel enviou)
+//   ok     = true se executou, false se falhou
+//   versao = (opcional) nova versão do firmware, usada após um OTA bem-sucedido
+const montaAck = `// O badge vem do próprio tópico: unifesp/ponto/cmd/101/ack
+const partes = String(msg.topic).split('/');
+const badge = partes[3];
+let p = null;
+try { p = JSON.parse(msg.payload.toString()); } catch (e) { p = null; }
+
+const id = p && Number.isInteger(p.id) && p.id > 0 ? p.id : null;
+if (!/^[0-9]+$/.test(badge || '') || id === null || typeof p.ok !== 'boolean') {
+    node.status({ fill: 'yellow', shape: 'ring', text: 'ACK inválido (ignorado)' });
+    node.warn('ACK inválido em ' + msg.topic + ': ' + String(msg.payload).slice(0, 200));
+    return null;
+}
+const versao = typeof p.versao === 'string' && p.versao.length > 0 && p.versao.length <= 32 ? p.versao : null;
+
+msg.badge = badge;
+msg.ackId = id;
+msg.ackOk = p.ok;
+msg.params = [id, badge, p.ok, versao];
+// Tudo numa consulta só (os $1..$4 são dados, nunca texto de SQL):
+//  1) "c" confirma o comando, mas só se ele ainda estiver ENVIADO e for MESMO daquele crachá
+//     (um ACK repetido ou de outro crachá não muda nada);
+//  2) "d_fw" (OTA bem-sucedido com versão) grava firmware_versao e renova ultimo_contato;
+//     "d_ok" (todos os outros casos) só renova ultimo_contato. São linhas DISJUNTAS (o Postgres
+//     não aceita alterar a mesma linha duas vezes numa consulta) e nenhuma LÊ firmware_versao,
+//     pois o nodered só tem SELECT em id, tipo e identificador (menor privilégio).
+const ehOtaOk = "c.comando = 'OTA' AND $3::boolean AND $4::text IS NOT NULL";
+msg.query = "WITH c AS (" +
+    "UPDATE comando SET status = CASE WHEN $3::boolean THEN 'CONFIRMADO' ELSE 'FALHOU' END, " +
+    "confirmado_em = now() " +
+    "WHERE id = $1::bigint AND status = 'ENVIADO' " +
+    "AND dispositivo_id = (SELECT id FROM dispositivo WHERE tipo = 'cracha' AND identificador = $2::text) " +
+    "RETURNING dispositivo_id, comando), " +
+    "d_fw AS (UPDATE dispositivo SET ultimo_contato = now(), firmware_versao = $4::text " +
+    "FROM c WHERE dispositivo.id = c.dispositivo_id AND " + ehOtaOk + " RETURNING 1), " +
+    "d_ok AS (UPDATE dispositivo SET ultimo_contato = now() " +
+    "FROM c WHERE dispositivo.id = c.dispositivo_id AND NOT (" + ehOtaOk + ") RETURNING 1) " +
+    "SELECT (SELECT count(*) FROM c) AS atualizados";
+return msg;`
+
+const resumeAck = `const r = (msg.payload || [])[0];
+const n = r ? Number(r.atualizados) : 0;
+let texto;
+if (n === 1) {
+    texto = 'Crachá ' + msg.badge + ' ' + (msg.ackOk ? 'CONFIRMOU' : 'FALHOU em') + ' o comando #' + msg.ackId +
+            ' às ' + new Date().toLocaleTimeString('pt-BR') + '.';
+} else {
+    // ACK repetido, de comando que não existe ou de outro crachá: não altera nada.
+    texto = 'ACK ignorado (comando #' + msg.ackId + ' não está aguardando confirmação do crachá ' + msg.badge + ').';
+}
+node.status({ fill: n === 1 ? 'green' : 'yellow', shape: 'dot', text: texto });
+return { payload: texto };`
 
 // ---- A5. Exportação CSV ----------------------------------------------
 
@@ -344,7 +434,7 @@ const fluxo = [
   { id: 'mqtt_pc', type: 'mqtt in', z: Z, name: 'pc/+/status', topic: 'unifesp/ponto/pc/+/status',
     qos: '1', datatype: 'utf8', broker: 'broker_local', nl: false, rap: true, rh: 0, inputs: 0,
     x: 140, y: 320, wires: [['f_status']] },
-  fn('f_status', 'monta UPDATE', montaStatus, 400, 290, [['pg_status']]),
+  fn('f_status', 'monta UPDATE', montaStatus, 400, 290, [['pg_status'], ['delay_painel']], 2),
   pg('pg_status', 'atualiza ultimo_contato', 'SELECT 1', 640, 290, [['delay_painel']]),
 
   // ---------- Fluxo 3: erros ----------
@@ -376,7 +466,7 @@ const fluxo = [
   pg('pg_historico', 'vw_historico', SQL.historico, 820, 740, [['f_hist']]),
   fn('f_hist', 'formata histórico', formataHistorico, 1040, 740, [['t_hist']]),
   pg('pg_disp', 'vw_dispositivos', SQL.dispositivos, 820, 800, [['f_disp']]),
-  fn('f_disp', 'formata dispositivos', formataDispositivos, 1040, 800, [['t_disp']]),
+  fn('f_disp', 'formata dispositivos', formataDispositivos, 1040, 800, [['t_disp'], ['x_gw']], 2),
 
   // ---------- Fluxo 5: PAINEL (comandos) ----------
   comment('c5', '5) COMANDOS: botões do painel -> tabela "comando" + MQTT unifesp/ponto/cmd/{badge}', 880),
@@ -392,6 +482,14 @@ const fluxo = [
   { id: 'mqtt_cmd', type: 'mqtt out', z: Z, name: 'unifesp/ponto/cmd/{badge}', topic: '', qos: '1',
     retain: 'false', respTopic: '', contentType: '', userProps: '', correl: '', expiry: '',
     broker: 'broker_local', x: 1060, y: 1040, wires: [] },
+
+  // ACK: o crachá responde ao comando; o status vira CONFIRMADO/FALHOU e (OTA) a versão é gravada.
+  { id: 'mqtt_ack', type: 'mqtt in', z: Z, name: 'cmd/+/ack', topic: 'unifesp/ponto/cmd/+/ack',
+    qos: '1', datatype: 'utf8', broker: 'broker_local', nl: false, rap: true, rh: 0, inputs: 0,
+    x: 140, y: 1150, wires: [['f_ack']] },
+  fn('f_ack', 'monta UPDATE do ACK', montaAck, 400, 1150, [['pg_ack']]),
+  pg('pg_ack', 'confirma comando', 'SELECT 1', 620, 1150, [['f_ack_fim']]),
+  fn('f_ack_fim', 'resume ACK', resumeAck, 820, 1150, [['x_cmd', 'delay_painel']]),
 
   // ---------- Fluxo 6: exportação CSV ----------
   comment('c6', '6) EXPORTAR CSV (espelho de ponto): http://127.0.0.1:1880/exportar/historico.csv e jornada.csv', 1180),
@@ -433,6 +531,7 @@ const fluxo = [
   texto('x_presentes', 'g_pres', 1, 1280, 540, 20),
   tabela('t_presenca', 'g_pres', 'Presença', 2, 1280, 580),
   tabela('t_disp', 'g_disp', 'Dispositivos', 1, 1280, 820),
+  texto('x_gw', 'g_disp', 2, 1280, 860, 15),
   tabela('t_hoje', 'g_hoje', 'Jornada de hoje', 1, 1280, 640),
   tabela('t_semana', 'g_sem', 'Semana', 1, 1280, 700),
   {

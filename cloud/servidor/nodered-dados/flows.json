@@ -34,7 +34,7 @@
     "portFieldType": "env",
     "database": "SUPABASE_DB_NAME",
     "databaseFieldType": "env",
-    "ssl": "{\"ca\":\"-----BEGIN CERTIFICATE-----\\nMIIDxDCCAqygAwIBAgIUbLxMod62P2ktCiAkxnKJwtE9VPYwDQYJKoZIhvcNAQEL\\nBQAwazELMAkGA1UEBhMCVVMxEDAOBgNVBAgMB0RlbHdhcmUxEzARBgNVBAcMCk5l\\ndyBDYXN0bGUxFTATBgNVBAoMDFN1cGFiYXNlIEluYzEeMBwGA1UEAwwVU3VwYWJh\\nc2UgUm9vdCAyMDIxIENBMB4XDTIxMDQyODEwNTY1M1oXDTMxMDQyNjEwNTY1M1ow\\nazELMAkGA1UEBhMCVVMxEDAOBgNVBAgMB0RlbHdhcmUxEzARBgNVBAcMCk5ldyBD\\nYXN0bGUxFTATBgNVBAoMDFN1cGFiYXNlIEluYzEeMBwGA1UEAwwVU3VwYWJhc2Ug\\nUm9vdCAyMDIxIENBMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqQXW\\nQyHOB+qR2GJobCq/CBmQ40G0oDmCC3mzVnn8sv4XNeWtE5XcEL0uVih7Jo4Dkx1Q\\nDmGHBH1zDfgs2qXiLb6xpw/CKQPypZW1JssOTMIfQppNQ87K75Ya0p25Y3ePS2t2\\nGtvHxNjUV6kjOZjEn2yWEcBdpOVCUYBVFBNMB4YBHkNRDa/+S4uywAoaTWnCJLUi\\ncvTlHmMw6xSQQn1UfRQHk50DMCEJ7Cy1RxrZJrkXXRP3LqQL2ijJ6F4yMfh+Gyb4\\nO4XajoVj/+R4GwywKYrrS8PrSNtwxr5StlQO8zIQUSMiq26wM8mgELFlS/32Uclt\\nNaQ1xBRizkzpZct9DwIDAQABo2AwXjALBgNVHQ8EBAMCAQYwHQYDVR0OBBYEFKjX\\nuXY32CztkhImng4yJNUtaUYsMB8GA1UdIwQYMBaAFKjXuXY32CztkhImng4yJNUt\\naUYsMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAB8spzNn+4VU\\ntVxbdMaX+39Z50sc7uATmus16jmmHjhIHz+l/9GlJ5KqAMOx26mPZgfzG7oneL2b\\nVW+WgYUkTT3XEPFWnTp2RJwQao8/tYPXWEJDc0WVQHrpmnWOFKU/d3MqBgBm5y+6\\njB81TU/RG2rVerPDWP+1MMcNNy0491CTL5XQZ7JfDJJ9CCmXSdtTl4uUQnSuv/Qx\\nCea13BX2ZgJc7Au30vihLhub52De4P/4gonKsNHYdbWjg7OWKwNv/zitGDVDB9Y2\\nCMTyZKG3XEu5Ghl1LEnI3QmEKsqaCLv12BnVjbkSeZsMnevJPs1Ye6TjjJwdik5P\\no/bKiIz+Fq8=\\n-----END CERTIFICATE-----\\n\",\"rejectUnauthorized\":true}",
+    "ssl": "{\"ca\":\"-----BEGIN CERTIFICATE-----\\r\\nMIIDxDCCAqygAwIBAgIUbLxMod62P2ktCiAkxnKJwtE9VPYwDQYJKoZIhvcNAQEL\\r\\nBQAwazELMAkGA1UEBhMCVVMxEDAOBgNVBAgMB0RlbHdhcmUxEzARBgNVBAcMCk5l\\r\\ndyBDYXN0bGUxFTATBgNVBAoMDFN1cGFiYXNlIEluYzEeMBwGA1UEAwwVU3VwYWJh\\r\\nc2UgUm9vdCAyMDIxIENBMB4XDTIxMDQyODEwNTY1M1oXDTMxMDQyNjEwNTY1M1ow\\r\\nazELMAkGA1UEBhMCVVMxEDAOBgNVBAgMB0RlbHdhcmUxEzARBgNVBAcMCk5ldyBD\\r\\nYXN0bGUxFTATBgNVBAoMDFN1cGFiYXNlIEluYzEeMBwGA1UEAwwVU3VwYWJhc2Ug\\r\\nUm9vdCAyMDIxIENBMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqQXW\\r\\nQyHOB+qR2GJobCq/CBmQ40G0oDmCC3mzVnn8sv4XNeWtE5XcEL0uVih7Jo4Dkx1Q\\r\\nDmGHBH1zDfgs2qXiLb6xpw/CKQPypZW1JssOTMIfQppNQ87K75Ya0p25Y3ePS2t2\\r\\nGtvHxNjUV6kjOZjEn2yWEcBdpOVCUYBVFBNMB4YBHkNRDa/+S4uywAoaTWnCJLUi\\r\\ncvTlHmMw6xSQQn1UfRQHk50DMCEJ7Cy1RxrZJrkXXRP3LqQL2ijJ6F4yMfh+Gyb4\\r\\nO4XajoVj/+R4GwywKYrrS8PrSNtwxr5StlQO8zIQUSMiq26wM8mgELFlS/32Uclt\\r\\nNaQ1xBRizkzpZct9DwIDAQABo2AwXjALBgNVHQ8EBAMCAQYwHQYDVR0OBBYEFKjX\\r\\nuXY32CztkhImng4yJNUtaUYsMB8GA1UdIwQYMBaAFKjXuXY32CztkhImng4yJNUt\\r\\naUYsMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAB8spzNn+4VU\\r\\ntVxbdMaX+39Z50sc7uATmus16jmmHjhIHz+l/9GlJ5KqAMOx26mPZgfzG7oneL2b\\r\\nVW+WgYUkTT3XEPFWnTp2RJwQao8/tYPXWEJDc0WVQHrpmnWOFKU/d3MqBgBm5y+6\\r\\njB81TU/RG2rVerPDWP+1MMcNNy0491CTL5XQZ7JfDJJ9CCmXSdtTl4uUQnSuv/Qx\\r\\nCea13BX2ZgJc7Au30vihLhub52De4P/4gonKsNHYdbWjg7OWKwNv/zitGDVDB9Y2\\r\\nCMTyZKG3XEu5Ghl1LEnI3QmEKsqaCLv12BnVjbkSeZsMnevJPs1Ye6TjjJwdik5P\\r\\no/bKiIz+Fq8=\\r\\n-----END CERTIFICATE-----\\r\\n\",\"rejectUnauthorized\":true}",
     "sslFieldType": "json",
     "userFieldType": "env",
     "userEnv": "SUPABASE_DB_USER",
@@ -211,8 +211,8 @@
     "type": "function",
     "z": "tab_ponto",
     "name": "monta UPDATE",
-    "func": "const texto = msg.payload.toString().trim();\nlet obj = null;\ntry { obj = JSON.parse(texto); } catch (e) { /* texto simples, ex.: online */ }\n\n// O gateway pode avisar que caiu (\"offline\"), em texto ou JSON.\nconst offline = /^offline$/i.test(texto) ||\n                (obj && (obj.online === false || /^offline$/i.test(String(obj.status || obj.estado || ''))));\nif (offline) {\n    node.status({ fill: 'grey', shape: 'ring', text: 'offline (ignorado)' });\n    return null;\n}\n\nlet id = obj && typeof obj === 'object' ? (obj.id ?? null) : null;\nlet tipo;\nif (msg.topic.includes('/gateway/')) { tipo = 'gateway'; id = id ?? 'gw-lab'; }\nelse                                 { tipo = 'pc';      id = id ?? 'pc-lab-01'; }\n\nmsg.params = [tipo, id];\nmsg.query = \"UPDATE dispositivo SET ultimo_contato = now() WHERE tipo = $1 AND identificador = $2\";\nreturn msg;",
-    "outputs": 1,
+    "func": "const texto = msg.payload.toString().trim();\nlet obj = null;\ntry { obj = JSON.parse(texto); } catch (e) { /* texto simples, ex.: online */ }\n\n// O gateway pode avisar que caiu (\"offline\"), em texto ou JSON.\nconst offline = /^offline$/i.test(texto) ||\n                (obj && (obj.online === false || /^offline$/i.test(String(obj.status || obj.estado || ''))));\nconst ehGateway = msg.topic.includes('/gateway/');\n\n// O estado do gateway (online/offline + qualidade do LoRa) fica na MEMÓRIA do fluxo, só para o\n// painel mostrar. Não vai para o banco. Se o Node-RED reiniciar, a mensagem \"retained\" que o\n// broker guardou devolve esse estado assim que o fluxo se inscreve de novo.\nif (ehGateway) {\n    const o = obj && typeof obj === 'object' ? obj : {};\n    const num = (v) => (typeof v === 'number' && isFinite(v) ? v : null);\n    flow.set('gw', {\n        estado: offline ? 'offline' : 'online',\n        rssi: num(o.rssi ?? o.rssi_lora),\n        snr: num(o.snr),\n        quando: Date.now(),\n    });\n}\n\nif (offline) {\n    // \"offline\" (inclusive o Last Will) NÃO conta como contato: não mexe em ultimo_contato.\n    // Só manda atualizar o painel (2a saída).\n    node.status({ fill: 'grey', shape: 'ring', text: 'offline (só painel)' });\n    return [null, ehGateway ? { payload: null } : null];\n}\n\nlet id = obj && typeof obj === 'object' ? (obj.id ?? null) : null;\nlet tipo;\nif (ehGateway) { tipo = 'gateway'; id = id ?? 'gw-lab'; }\nelse           { tipo = 'pc';      id = id ?? 'pc-lab-01'; }\n\nmsg.params = [tipo, id];\nmsg.query = \"UPDATE dispositivo SET ultimo_contato = now() WHERE tipo = $1 AND identificador = $2\";\nreturn [msg, null];",
+    "outputs": 2,
     "timeout": 0,
     "noerr": 0,
     "initialize": "",
@@ -223,6 +223,9 @@
     "wires": [
       [
         "pg_status"
+      ],
+      [
+        "delay_painel"
       ]
     ]
   },
@@ -549,8 +552,8 @@
     "type": "function",
     "z": "tab_ponto",
     "name": "formata dispositivos",
-    "func": "const rows = msg.payload || [];\nconst tipos = { cracha: 'Crachá', gateway: 'Gateway', pc: 'PC' };\nreturn { payload: rows.map((r) => ({\n    'Tipo': tipos[r.tipo] || r.tipo,\n    'Identificador': r.identificador,\n    'Dono': r.funcionario_nome || '-',\n    'Firmware': r.firmware_versao || '-',\n    'Último contato': r.ultimo_contato || 'nunca',\n    'Status': r.online ? '🟢 online' : '🔴 offline',\n})) };",
-    "outputs": 1,
+    "func": "const rows = msg.payload || [];\nconst tipos = { cracha: 'Crachá', gateway: 'Gateway', pc: 'PC' };\nconst tabela = rows.map((r) => ({\n    'Tipo': tipos[r.tipo] || r.tipo,\n    'Identificador': r.identificador,\n    'Dono': r.funcionario_nome || '-',\n    'Firmware': r.firmware_versao || '-',\n    'Último contato': r.ultimo_contato || 'nunca',\n    'Status': r.online ? '🟢 online' : '🔴 offline',\n}));\n\n// Linha de texto com o aviso do gateway (online/offline) e a qualidade do LoRa.\nconst gw = flow.get('gw');\nlet txt;\nif (!gw) {\n    txt = 'Gateway: nenhum aviso recebido ainda.';\n} else {\n    const seg = Math.max(0, Math.round((Date.now() - gw.quando) / 1000));\n    const ha = seg < 60 ? seg + ' s' : Math.floor(seg / 60) + ' min';\n    txt = 'Gateway: ' + (gw.estado === 'online' ? '🟢 online' : '🔴 offline (avisou que caiu)') +\n          (gw.rssi !== null ? ' · RSSI ' + gw.rssi + ' dBm' : '') +\n          (gw.snr !== null ? ' · SNR ' + gw.snr + ' dB' : '') +\n          ' · último aviso há ' + ha;\n}\nreturn [{ payload: tabela }, { payload: txt }];",
+    "outputs": 2,
     "timeout": 0,
     "noerr": 0,
     "initialize": "",
@@ -561,6 +564,9 @@
     "wires": [
       [
         "t_disp"
+      ],
+      [
+        "x_gw"
       ]
     ]
   },
@@ -802,7 +808,7 @@
     "type": "function",
     "z": "tab_ponto",
     "name": "prepara MQTT",
-    "func": "const r = (msg.payload || [])[0];\nif (!r) {\n    return [null, { payload: 'Dispositivo do crachá ' + msg.badge + ' não encontrado na tabela dispositivo.' }];\n}\nconst corpo = Object.assign({ id: Number(r.id), comando: msg.comando }, msg.parametros);\nreturn [\n    { topic: 'unifesp/ponto/cmd/' + msg.badge, payload: JSON.stringify(corpo), qos: 1, retain: false },\n    { payload: msg.comando + ' enviado ao crachá ' + msg.badge + ' (comando #' + r.id + ') às ' +\n               new Date().toLocaleTimeString('pt-BR') + '. Aguardando o crachá (confirmação ainda não implementada).' },\n];",
+    "func": "const r = (msg.payload || [])[0];\nif (!r) {\n    return [null, { payload: 'Dispositivo do crachá ' + msg.badge + ' não encontrado na tabela dispositivo.' }];\n}\nconst corpo = Object.assign({ id: Number(r.id), comando: msg.comando }, msg.parametros);\nreturn [\n    { topic: 'unifesp/ponto/cmd/' + msg.badge, payload: JSON.stringify(corpo), qos: 1, retain: false },\n    { payload: msg.comando + ' enviado ao crachá ' + msg.badge + ' (comando #' + r.id + ') às ' +\n               new Date().toLocaleTimeString('pt-BR') + '. Aguardando a confirmação (ACK) do crachá.' },\n];",
     "outputs": 2,
     "timeout": 0,
     "noerr": 0,
@@ -837,6 +843,86 @@
     "x": 1060,
     "y": 1040,
     "wires": []
+  },
+  {
+    "id": "mqtt_ack",
+    "type": "mqtt in",
+    "z": "tab_ponto",
+    "name": "cmd/+/ack",
+    "topic": "unifesp/ponto/cmd/+/ack",
+    "qos": "1",
+    "datatype": "utf8",
+    "broker": "broker_local",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "x": 140,
+    "y": 1150,
+    "wires": [
+      [
+        "f_ack"
+      ]
+    ]
+  },
+  {
+    "id": "f_ack",
+    "type": "function",
+    "z": "tab_ponto",
+    "name": "monta UPDATE do ACK",
+    "func": "// O badge vem do próprio tópico: unifesp/ponto/cmd/101/ack\nconst partes = String(msg.topic).split('/');\nconst badge = partes[3];\nlet p = null;\ntry { p = JSON.parse(msg.payload.toString()); } catch (e) { p = null; }\n\nconst id = p && Number.isInteger(p.id) && p.id > 0 ? p.id : null;\nif (!/^[0-9]+$/.test(badge || '') || id === null || typeof p.ok !== 'boolean') {\n    node.status({ fill: 'yellow', shape: 'ring', text: 'ACK inválido (ignorado)' });\n    node.warn('ACK inválido em ' + msg.topic + ': ' + String(msg.payload).slice(0, 200));\n    return null;\n}\nconst versao = typeof p.versao === 'string' && p.versao.length > 0 && p.versao.length <= 32 ? p.versao : null;\n\nmsg.badge = badge;\nmsg.ackId = id;\nmsg.ackOk = p.ok;\nmsg.params = [id, badge, p.ok, versao];\n// Tudo numa consulta só (os $1..$4 são dados, nunca texto de SQL):\n//  1) \"c\" confirma o comando, mas só se ele ainda estiver ENVIADO e for MESMO daquele crachá\n//     (um ACK repetido ou de outro crachá não muda nada);\n//  2) \"d_fw\" (OTA bem-sucedido com versão) grava firmware_versao e renova ultimo_contato;\n//     \"d_ok\" (todos os outros casos) só renova ultimo_contato. São linhas DISJUNTAS (o Postgres\n//     não aceita alterar a mesma linha duas vezes numa consulta) e nenhuma LÊ firmware_versao,\n//     pois o nodered só tem SELECT em id, tipo e identificador (menor privilégio).\nconst ehOtaOk = \"c.comando = 'OTA' AND $3::boolean AND $4::text IS NOT NULL\";\nmsg.query = \"WITH c AS (\" +\n    \"UPDATE comando SET status = CASE WHEN $3::boolean THEN 'CONFIRMADO' ELSE 'FALHOU' END, \" +\n    \"confirmado_em = now() \" +\n    \"WHERE id = $1::bigint AND status = 'ENVIADO' \" +\n    \"AND dispositivo_id = (SELECT id FROM dispositivo WHERE tipo = 'cracha' AND identificador = $2::text) \" +\n    \"RETURNING dispositivo_id, comando), \" +\n    \"d_fw AS (UPDATE dispositivo SET ultimo_contato = now(), firmware_versao = $4::text \" +\n    \"FROM c WHERE dispositivo.id = c.dispositivo_id AND \" + ehOtaOk + \" RETURNING 1), \" +\n    \"d_ok AS (UPDATE dispositivo SET ultimo_contato = now() \" +\n    \"FROM c WHERE dispositivo.id = c.dispositivo_id AND NOT (\" + ehOtaOk + \") RETURNING 1) \" +\n    \"SELECT (SELECT count(*) FROM c) AS atualizados\";\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 400,
+    "y": 1150,
+    "wires": [
+      [
+        "pg_ack"
+      ]
+    ]
+  },
+  {
+    "id": "pg_ack",
+    "type": "postgresql",
+    "z": "tab_ponto",
+    "name": "confirma comando",
+    "query": "SELECT 1",
+    "postgreSQLConfig": "pg_supabase",
+    "split": false,
+    "rowsPerMsg": 1,
+    "outputs": 1,
+    "x": 620,
+    "y": 1150,
+    "wires": [
+      [
+        "f_ack_fim"
+      ]
+    ]
+  },
+  {
+    "id": "f_ack_fim",
+    "type": "function",
+    "z": "tab_ponto",
+    "name": "resume ACK",
+    "func": "const r = (msg.payload || [])[0];\nconst n = r ? Number(r.atualizados) : 0;\nlet texto;\nif (n === 1) {\n    texto = 'Crachá ' + msg.badge + ' ' + (msg.ackOk ? 'CONFIRMOU' : 'FALHOU em') + ' o comando #' + msg.ackId +\n            ' às ' + new Date().toLocaleTimeString('pt-BR') + '.';\n} else {\n    // ACK repetido, de comando que não existe ou de outro crachá: não altera nada.\n    texto = 'ACK ignorado (comando #' + msg.ackId + ' não está aguardando confirmação do crachá ' + msg.badge + ').';\n}\nnode.status({ fill: n === 1 ? 'green' : 'yellow', shape: 'dot', text: texto });\nreturn { payload: texto };",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 820,
+    "y": 1150,
+    "wires": [
+      [
+        "x_cmd",
+        "delay_painel"
+      ]
+    ]
   },
   {
     "id": "c6",
@@ -1208,6 +1294,30 @@
     "className": "",
     "x": 1280,
     "y": 820,
+    "wires": []
+  },
+  {
+    "id": "x_gw",
+    "type": "ui-text",
+    "z": "tab_ponto",
+    "group": "g_disp",
+    "order": 2,
+    "width": 0,
+    "height": 0,
+    "name": "",
+    "label": "",
+    "format": "{{msg.payload}}",
+    "layout": "row-left",
+    "style": true,
+    "font": "",
+    "fontSize": 15,
+    "color": "#1f2937",
+    "wrapText": true,
+    "className": "",
+    "value": "payload",
+    "valueType": "msg",
+    "x": 1280,
+    "y": 860,
     "wires": []
   },
   {

@@ -32,7 +32,7 @@ Para desligar: `Ctrl+C` em cada terminal. **Ligue sempre o broker antes do Node-
 - **Painel de gerência** (`http://127.0.0.1:1880/dashboard`): presença, jornada do dia, semana (tabela e gráfico), histórico dos últimos 50 pontos, dispositivos, comandos (BIPE e OTA) e exportação CSV. Atualiza a cada 10 s e logo após cada ponto.
   **O painel e os CSV não têm senha**; por isso o Node-RED só escuta em `127.0.0.1` (este computador).
 - **CSV** (abre no Excel, separador `;`): `/exportar/historico.csv` e `/exportar/jornada.csv`.
-- **OTA:** preencha "URL do .bin" e "Versão" e clique em *Atualizar firmware*. O comando é gravado na tabela `comando` e publicado em `unifesp/ponto/cmd/101`. A confirmação pelo crachá ainda não existe (veja `PENDENCIAS.md`).
+- **OTA:** preencha "URL do .bin" e "Versão" e clique em *Atualizar firmware*. O comando é gravado na tabela `comando` e publicado em `unifesp/ponto/cmd/101`. O crachá confirma publicando em `unifesp/ponto/cmd/{badge}/ack` o JSON `{"id":<nº do comando>,"ok":true,"versao":"2.0"}` (`versao` é opcional): o status vira `CONFIRMADO` (ou `FALHOU` se `ok:false`), grava `confirmado_em` e, num OTA bem-sucedido, `dispositivo.firmware_versao`. ACK repetido, de outro crachá ou de comando que não está `ENVIADO` é ignorado. Para simular sem o hardware: `npm run publicar-teste -- ack <id> ok 2.0` (ou `falha`).
 
 ## Como testar sem o crachá
 
@@ -55,7 +55,7 @@ Para conferir no Supabase: `SELECT * FROM vw_historico ORDER BY ts_evento DESC;`
 | Tópico | Quem publica | O que acontece |
 | --- | --- | --- |
 | `unifesp/ponto/evento` | gateway (botão) e agente do PC (BLE) | Node-RED chama `registrar_ponto()` |
-| `unifesp/ponto/gateway/status` | gateway | atualiza `ultimo_contato` do `gw-lab` (ou do `id` enviado no JSON) |
+| `unifesp/ponto/gateway/status` | gateway | *retained*: `{"estado":"online","rssi":-71,"snr":9.5}`; Last Will `{"estado":"offline"}`. `online` atualiza `ultimo_contato` do `gw-lab` (ou do `id` do JSON); `offline` só muda a linha "Gateway" do painel. Simular: `npm run publicar-teste -- gateway online\|offline\|cair` |
 | `unifesp/ponto/pc/<badge>/status` | agente do PC | atualiza `ultimo_contato` do `pc-lab-01` (ou do `id` enviado no JSON) |
 
 ## Se der problema
