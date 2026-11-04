@@ -1,0 +1,1 @@
+# Coloque aqui o .bin do OTA (nao vai ao Git).

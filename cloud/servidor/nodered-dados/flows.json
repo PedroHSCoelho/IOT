@@ -364,10 +364,141 @@
     "wires": [
       [
         "pg_presenca",
+        "pg_disp",
+        "f_filtros"
+      ]
+    ]
+  },
+  {
+    "id": "f_filtros",
+    "type": "function",
+    "z": "tab_ponto",
+    "name": "monta filtros (dia, nome)",
+    "func": "let dia = String(flow.get('f_dia') || '').trim();\nif (!/^\\d{4}-\\d{2}-\\d{2}$/.test(dia)) dia = '';          // só aceita AAAA-MM-DD; senão = hoje\nconst nome = String(flow.get('f_nome') || '').trim().slice(0, 60);\n\nlet texto = 'Mostrando: ' + (dia ? dia.split('-').reverse().join('/') : 'hoje');\nif (nome) texto += ' · funcionários com \"' + nome + '\" no nome';\nreturn [{ payload: null, params: [dia, nome] }, { payload: texto }];",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 600,
+    "y": 680,
+    "wires": [
+      [
         "pg_hoje",
         "pg_semana",
-        "pg_historico",
-        "pg_disp"
+        "pg_historico"
+      ],
+      [
+        "x_filtro"
+      ]
+    ]
+  },
+  {
+    "id": "in_f_dia",
+    "type": "ui-text-input",
+    "z": "tab_ponto",
+    "group": "g_filtro",
+    "name": "Dia (vazio = hoje)",
+    "label": "Dia (vazio = hoje)",
+    "order": 1,
+    "width": 0,
+    "height": 0,
+    "topicType": "msg",
+    "mode": "date",
+    "tooltip": "",
+    "delay": 300,
+    "passthru": false,
+    "sendOnDelay": false,
+    "sendOnBlur": true,
+    "sendOnEnter": true,
+    "className": "",
+    "clearable": false,
+    "sendOnClear": false,
+    "icon": "",
+    "iconPosition": "left",
+    "payload": "",
+    "payloadType": "str",
+    "topic": "topic",
+    "x": 160,
+    "y": 640,
+    "wires": [
+      [
+        "f_f_dia"
+      ]
+    ]
+  },
+  {
+    "id": "in_f_nome",
+    "type": "ui-text-input",
+    "z": "tab_ponto",
+    "group": "g_filtro",
+    "name": "Nome contém...",
+    "label": "Nome contém...",
+    "order": 2,
+    "width": 0,
+    "height": 0,
+    "topicType": "msg",
+    "mode": "text",
+    "tooltip": "",
+    "delay": 300,
+    "passthru": false,
+    "sendOnDelay": false,
+    "sendOnBlur": true,
+    "sendOnEnter": true,
+    "className": "",
+    "clearable": false,
+    "sendOnClear": false,
+    "icon": "",
+    "iconPosition": "left",
+    "payload": "",
+    "payloadType": "str",
+    "topic": "topic",
+    "x": 160,
+    "y": 700,
+    "wires": [
+      [
+        "f_f_nome"
+      ]
+    ]
+  },
+  {
+    "id": "f_f_dia",
+    "type": "function",
+    "z": "tab_ponto",
+    "name": "guarda dia",
+    "func": "flow.set('f_dia', String(msg.payload || '')); return { payload: null };",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 380,
+    "y": 640,
+    "wires": [
+      [
+        "delay_painel"
+      ]
+    ]
+  },
+  {
+    "id": "f_f_nome",
+    "type": "function",
+    "z": "tab_ponto",
+    "name": "guarda nome",
+    "func": "flow.set('f_nome', String(msg.payload || '')); return { payload: null };",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 380,
+    "y": 700,
+    "wires": [
+      [
+        "delay_painel"
       ]
     ]
   },
@@ -417,7 +548,7 @@
     "type": "postgresql",
     "z": "tab_ponto",
     "name": "vw_jornada_diaria (hoje)",
-    "query": "SELECT nome, to_char(primeira_chegada AT TIME ZONE 'America/Sao_Paulo', 'HH24:MI') AS primeira, to_char(ultima_saida AT TIME ZONE 'America/Sao_Paulo', 'HH24:MI') AS ultima, minutos_trabalhados, carga_diaria_min, saldo_min, saida_pendente FROM vw_jornada_diaria WHERE dia = (now() AT TIME ZONE 'America/Sao_Paulo')::date ORDER BY nome",
+    "query": "SELECT p.nome, to_char(j.primeira_chegada AT TIME ZONE 'America/Sao_Paulo', 'HH24:MI') AS primeira, to_char(j.ultima_saida AT TIME ZONE 'America/Sao_Paulo', 'HH24:MI') AS ultima, COALESCE(j.minutos_trabalhados, 0) AS minutos_trabalhados, COALESCE(j.carga_diaria_min, (SELECT max(x.carga_diaria_min) FROM vw_jornada_diaria x WHERE x.funcionario_id = p.funcionario_id)) AS carga_diaria_min, COALESCE(j.saldo_min, -(COALESCE(j.carga_diaria_min, (SELECT max(x.carga_diaria_min) FROM vw_jornada_diaria x WHERE x.funcionario_id = p.funcionario_id)))) AS saldo_min, COALESCE(j.saida_pendente, false) AS saida_pendente FROM vw_presenca_atual p LEFT JOIN vw_jornada_diaria j ON j.funcionario_id = p.funcionario_id AND j.dia = COALESCE(NULLIF($1::text, '')::date, (now() AT TIME ZONE 'America/Sao_Paulo')::date) WHERE strpos(lower(p.nome), lower($2::text)) > 0 ORDER BY p.nome",
     "postgreSQLConfig": "pg_supabase",
     "split": false,
     "rowsPerMsg": 1,
@@ -435,7 +566,7 @@
     "type": "function",
     "z": "tab_ponto",
     "name": "formata jornada",
-    "func": "const hm = (m) => Math.floor(Math.abs(m) / 60) + 'h ' + String(Math.abs(m) % 60).padStart(2, '0') + 'min';\nconst saldo = (m) => (m < 0 ? '-' : '+') + hm(m);\nconst origemTxt = (o) => o === 'botao' ? 'Botão (LoRa)' : o === 'ble' ? 'Automático (BLE)' : '-';\nconst rows = msg.payload || [];\nreturn { payload: rows.map((r) => ({\n    'Funcionário': r.nome,\n    'Chegada': r.primeira || '-',\n    'Saída': r.ultima || '-',\n    'Trabalhado': hm(r.minutos_trabalhados),\n    'Carga': hm(r.carga_diaria_min),\n    'Saldo': saldo(r.saldo_min),\n    'Obs.': r.saida_pendente ? 'saída não registrada' : '',\n})) };",
+    "func": "const hm = (m) => Math.floor(Math.abs(m) / 60) + 'h ' + String(Math.abs(m) % 60).padStart(2, '0') + 'min';\nconst saldo = (m) => (m < 0 ? '-' : '+') + hm(m);\nconst origemTxt = (o) => o === 'botao' ? 'Botão (LoRa)' : o === 'ble' ? 'Automático (BLE)' : '-';\nconst rows = msg.payload || [];\nreturn { payload: rows.map((r) => ({\n    'Funcionário': r.nome,\n    'Chegada': r.primeira || '-',\n    'Saída': r.ultima || '-',\n    'Trabalhado': hm(r.minutos_trabalhados),\n    'Carga': r.carga_diaria_min === null ? '-' : hm(r.carga_diaria_min),\n    'Saldo': r.saldo_min === null ? '-' : saldo(r.saldo_min),\n    // Atenção: nome de coluna SEM ponto no fim (\"Obs.\" não aparecia: a tabela lê o ponto como caminho).\n    'Observação': r.saida_pendente ? 'saída não registrada' : (r.primeira ? '' : 'sem ponto'),\n})) };",
     "outputs": 1,
     "timeout": 0,
     "noerr": 0,
@@ -455,7 +586,7 @@
     "type": "postgresql",
     "z": "tab_ponto",
     "name": "vw_jornada_semanal",
-    "query": "SELECT nome, minutos_trabalhados, carga_semanal_min, saldo_min FROM vw_jornada_semanal WHERE semana = date_trunc('week', now() AT TIME ZONE 'America/Sao_Paulo')::date ORDER BY nome",
+    "query": "SELECT p.nome, COALESCE(s.minutos_trabalhados, 0) AS minutos_trabalhados, COALESCE(s.carga_semanal_min, (SELECT max(x.carga_diaria_min) FROM vw_jornada_diaria x WHERE x.funcionario_id = p.funcionario_id) * 5) AS carga_semanal_min, COALESCE(s.saldo_min, -((SELECT max(x.carga_diaria_min) FROM vw_jornada_diaria x WHERE x.funcionario_id = p.funcionario_id) * 5)) AS saldo_min FROM vw_presenca_atual p LEFT JOIN vw_jornada_semanal s ON s.funcionario_id = p.funcionario_id AND s.semana = date_trunc('week', (COALESCE(NULLIF($1::text, '')::date, (now() AT TIME ZONE 'America/Sao_Paulo')::date))::timestamp)::date WHERE strpos(lower(p.nome), lower($2::text)) > 0 ORDER BY p.nome",
     "postgreSQLConfig": "pg_supabase",
     "split": false,
     "rowsPerMsg": 1,
@@ -473,7 +604,7 @@
     "type": "function",
     "z": "tab_ponto",
     "name": "formata semana",
-    "func": "const hm = (m) => Math.floor(Math.abs(m) / 60) + 'h ' + String(Math.abs(m) % 60).padStart(2, '0') + 'min';\nconst saldo = (m) => (m < 0 ? '-' : '+') + hm(m);\nconst origemTxt = (o) => o === 'botao' ? 'Botão (LoRa)' : o === 'ble' ? 'Automático (BLE)' : '-';\nconst rows = msg.payload || [];\nconst tabela = rows.map((r) => ({\n    'Funcionário': r.nome,\n    'Trabalhado': hm(r.minutos_trabalhados),\n    'Carga semanal': hm(r.carga_semanal_min),\n    'Saldo': saldo(r.saldo_min),\n}));\n// Pontos do gráfico de barras: 2 séries (trabalhado x carga), em horas.\nconst h = (m) => Math.round(m / 6) / 10;\nconst grafico = [];\nrows.forEach((r) => {\n    grafico.push({ serie: 'Trabalhado (h)', nome: r.nome, horas: h(r.minutos_trabalhados) });\n    grafico.push({ serie: 'Carga semanal (h)', nome: r.nome, horas: h(r.carga_semanal_min) });\n});\nreturn [{ payload: tabela }, { payload: grafico }];",
+    "func": "const hm = (m) => Math.floor(Math.abs(m) / 60) + 'h ' + String(Math.abs(m) % 60).padStart(2, '0') + 'min';\nconst saldo = (m) => (m < 0 ? '-' : '+') + hm(m);\nconst origemTxt = (o) => o === 'botao' ? 'Botão (LoRa)' : o === 'ble' ? 'Automático (BLE)' : '-';\nconst rows = msg.payload || [];\nconst tabela = rows.map((r) => ({\n    'Funcionário': r.nome,\n    'Trabalhado': hm(r.minutos_trabalhados),\n    'Carga semanal': r.carga_semanal_min === null ? '-' : hm(r.carga_semanal_min),\n    'Saldo': r.saldo_min === null ? '-' : saldo(r.saldo_min),\n}));\n// Pontos do gráfico de barras: 2 séries (trabalhado x carga), em horas.\nconst h = (m) => Math.round((m ?? 0) / 6) / 10;\nconst grafico = [];\nrows.forEach((r) => {\n    grafico.push({ serie: 'Trabalhado (h)', nome: r.nome, horas: h(r.minutos_trabalhados) });\n    grafico.push({ serie: 'Carga semanal (h)', nome: r.nome, horas: h(r.carga_semanal_min) });\n});\nreturn [{ payload: tabela }, { payload: grafico }];",
     "outputs": 2,
     "timeout": 0,
     "noerr": 0,
@@ -496,7 +627,7 @@
     "type": "postgresql",
     "z": "tab_ponto",
     "name": "vw_historico",
-    "query": "SELECT to_char(ts_evento, 'DD/MM HH24:MI:SS') AS quando, nome, origem, tipo, contabilizado, motivo, rssi, fila FROM vw_historico ORDER BY ts_evento DESC, id DESC LIMIT 50",
+    "query": "SELECT to_char(ts_evento, 'DD/MM HH24:MI:SS') AS quando, nome, origem, tipo, contabilizado, motivo, rssi, fila FROM vw_historico WHERE (NULLIF($1::text, '') IS NULL OR ts_evento::date = NULLIF($1::text, '')::date) AND strpos(lower(nome), lower($2::text)) > 0 ORDER BY ts_evento DESC, id DESC LIMIT 50",
     "postgreSQLConfig": "pg_supabase",
     "split": false,
     "rowsPerMsg": 1,
@@ -1139,9 +1270,9 @@
     "groupType": "default"
   },
   {
-    "id": "g_hoje",
+    "id": "g_filtro",
     "type": "ui-group",
-    "name": "Jornada de hoje",
+    "name": "Filtros (valem para jornada, semana e histórico)",
     "page": "ui_page",
     "width": "12",
     "height": "1",
@@ -1153,13 +1284,27 @@
     "groupType": "default"
   },
   {
+    "id": "g_hoje",
+    "type": "ui-group",
+    "name": "Jornada do dia",
+    "page": "ui_page",
+    "width": "12",
+    "height": "1",
+    "order": 4,
+    "showTitle": true,
+    "className": "",
+    "visible": "true",
+    "disabled": "false",
+    "groupType": "default"
+  },
+  {
     "id": "g_sem",
     "type": "ui-group",
-    "name": "Semana (segunda a domingo)",
+    "name": "Semana (segunda a domingo) do dia escolhido",
     "page": "ui_page",
     "width": "6",
     "height": "1",
-    "order": 4,
+    "order": 5,
     "showTitle": true,
     "className": "",
     "visible": "true",
@@ -1173,7 +1318,7 @@
     "page": "ui_page",
     "width": "6",
     "height": "1",
-    "order": 5,
+    "order": 6,
     "showTitle": true,
     "className": "",
     "visible": "true",
@@ -1187,7 +1332,7 @@
     "page": "ui_page",
     "width": "12",
     "height": "1",
-    "order": 6,
+    "order": 7,
     "showTitle": true,
     "className": "",
     "visible": "true",
@@ -1201,7 +1346,7 @@
     "page": "ui_page",
     "width": "6",
     "height": "1",
-    "order": 7,
+    "order": 8,
     "showTitle": true,
     "className": "",
     "visible": "true",
@@ -1215,7 +1360,7 @@
     "page": "ui_page",
     "width": "6",
     "height": "1",
-    "order": 8,
+    "order": 9,
     "showTitle": true,
     "className": "",
     "visible": "true",
@@ -1321,12 +1466,36 @@
     "wires": []
   },
   {
+    "id": "x_filtro",
+    "type": "ui-text",
+    "z": "tab_ponto",
+    "group": "g_filtro",
+    "order": 3,
+    "width": 0,
+    "height": 0,
+    "name": "",
+    "label": "",
+    "format": "{{msg.payload}}",
+    "layout": "row-left",
+    "style": true,
+    "font": "",
+    "fontSize": 15,
+    "color": "#1f2937",
+    "wrapText": true,
+    "className": "",
+    "value": "payload",
+    "valueType": "msg",
+    "x": 1280,
+    "y": 900,
+    "wires": []
+  },
+  {
     "id": "t_hoje",
     "type": "ui-table",
     "z": "tab_ponto",
     "group": "g_hoje",
-    "name": "Jornada de hoje",
-    "label": "Jornada de hoje",
+    "name": "Jornada",
+    "label": "Jornada",
     "order": 1,
     "width": 0,
     "height": 0,

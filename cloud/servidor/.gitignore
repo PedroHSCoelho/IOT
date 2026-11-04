@@ -7,3 +7,4 @@ nodered-dados/context/
 nodered-dados/lib/
 nodered-dados/flows_cred.json
 nodered-dados/node_modules/
+firmware/*.bin

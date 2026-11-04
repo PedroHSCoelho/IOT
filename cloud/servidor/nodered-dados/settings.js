@@ -160,7 +160,9 @@ module.exports = {
      * The following property can be used to listen on a specific interface. For
      * example, the following would only allow connections from the local machine.
      */
-    //uiHost: "127.0.0.1",
+    // Só este computador acessa o editor, o painel e os CSV (não têm senha no painel).
+    // Para abrir ao celular/rede, troque por "0.0.0.0" E proteja com httpNodeAuth antes.
+    uiHost: "127.0.0.1",
 
     /** The maximum size of HTTP request that will be accepted by the runtime api.
      * Default: 5mb

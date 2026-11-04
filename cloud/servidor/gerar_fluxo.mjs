@@ -108,6 +108,20 @@ return [msg, null];`
 // para as consultas do painel).
 const limpaMensagem = `return { payload: null };`
 
+// Filtros do painel: o campo "Dia" e o campo "Nome" guardam o valor na memória do fluxo e
+// pedem uma atualização. O painel (a cada 10 s e após cada ponto) lê esses valores.
+const guardaFiltroDia = `flow.set('f_dia', String(msg.payload || '')); return { payload: null };`
+const guardaFiltroNome = `flow.set('f_nome', String(msg.payload || '')); return { payload: null };`
+
+// Monta os parâmetros das consultas filtradas ($1 = dia, $2 = nome) e o texto "Mostrando: ...".
+const montaFiltros = `let dia = String(flow.get('f_dia') || '').trim();
+if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(dia)) dia = '';          // só aceita AAAA-MM-DD; senão = hoje
+const nome = String(flow.get('f_nome') || '').trim().slice(0, 60);
+
+let texto = 'Mostrando: ' + (dia ? dia.split('-').reverse().join('/') : 'hoje');
+if (nome) texto += ' · funcionários com "' + nome + '" no nome';
+return [{ payload: null, params: [dia, nome] }, { payload: texto }];`
+
 const ajudantes = `const hm = (m) => Math.floor(Math.abs(m) / 60) + 'h ' + String(Math.abs(m) % 60).padStart(2, '0') + 'min';
 const saldo = (m) => (m < 0 ? '-' : '+') + hm(m);
 const origemTxt = (o) => o === 'botao' ? 'Botão (LoRa)' : o === 'ble' ? 'Automático (BLE)' : '-';
@@ -132,20 +146,21 @@ return { payload: rows.map((r) => ({
     'Chegada': r.primeira || '-',
     'Saída': r.ultima || '-',
     'Trabalhado': hm(r.minutos_trabalhados),
-    'Carga': hm(r.carga_diaria_min),
-    'Saldo': saldo(r.saldo_min),
-    'Obs.': r.saida_pendente ? 'saída não registrada' : '',
+    'Carga': r.carga_diaria_min === null ? '-' : hm(r.carga_diaria_min),
+    'Saldo': r.saldo_min === null ? '-' : saldo(r.saldo_min),
+    // Atenção: nome de coluna SEM ponto no fim ("Obs." não aparecia: a tabela lê o ponto como caminho).
+    'Observação': r.saida_pendente ? 'saída não registrada' : (r.primeira ? '' : 'sem ponto'),
 })) };`
 
 const formataSemana = ajudantes + `const rows = msg.payload || [];
 const tabela = rows.map((r) => ({
     'Funcionário': r.nome,
     'Trabalhado': hm(r.minutos_trabalhados),
-    'Carga semanal': hm(r.carga_semanal_min),
-    'Saldo': saldo(r.saldo_min),
+    'Carga semanal': r.carga_semanal_min === null ? '-' : hm(r.carga_semanal_min),
+    'Saldo': r.saldo_min === null ? '-' : saldo(r.saldo_min),
 }));
 // Pontos do gráfico de barras: 2 séries (trabalhado x carga), em horas.
-const h = (m) => Math.round(m / 6) / 10;
+const h = (m) => Math.round((m ?? 0) / 6) / 10;
 const grafico = [];
 rows.forEach((r) => {
     grafico.push({ serie: 'Trabalhado (h)', nome: r.nome, horas: h(r.minutos_trabalhados) });
@@ -315,21 +330,44 @@ return msg;`
 // =====================================================================
 const HORA = (col, fmt) => "to_char(" + col + " AT TIME ZONE " + FUSO + ", '" + fmt + "')"
 
+// Pedaços reutilizados nas consultas filtradas do painel ($1 = dia, $2 = nome).
+const DIA = "COALESCE(NULLIF($1::text, '')::date, (now() AT TIME ZONE " + FUSO + ")::date)"
+const FILTRO_NOME = "strpos(lower(p.nome), lower($2::text)) > 0"
+const CARGA_OUTRO_DIA = "(SELECT max(x.carga_diaria_min) FROM vw_jornada_diaria x " +
+                        "WHERE x.funcionario_id = p.funcionario_id)"
+const CARGA_DIA = "COALESCE(j.carga_diaria_min, " + CARGA_OUTRO_DIA + ")"   // só na consulta com alias j
+
 const SQL = {
   presenca:
     "SELECT nome, presente, " + HORA('desde', 'HH24:MI') + " AS desde_txt, origem " +
     "FROM vw_presenca_atual ORDER BY presente DESC, nome",
+  // Consultas FILTRADAS: $1 = dia ('' = hoje) e $2 = parte do nome ('' = todos).
+  // Partem de vw_presenca_atual (todos os funcionários ativos) com LEFT JOIN, para quem
+  // não bateu ponto aparecer com 0 min. A carga de quem nunca teve evento vem de outro dia
+  // do mesmo funcionário (o nodered não lê a tabela funcionario); se nunca teve, fica null.
   hoje:
-    "SELECT nome, " + HORA('primeira_chegada', 'HH24:MI') + " AS primeira, " +
-    HORA('ultima_saida', 'HH24:MI') + " AS ultima, minutos_trabalhados, carga_diaria_min, " +
-    "saldo_min, saida_pendente FROM vw_jornada_diaria " +
-    "WHERE dia = (now() AT TIME ZONE " + FUSO + ")::date ORDER BY nome",
+    "SELECT p.nome, " + HORA('j.primeira_chegada', 'HH24:MI') + " AS primeira, " +
+    HORA('j.ultima_saida', 'HH24:MI') + " AS ultima, " +
+    "COALESCE(j.minutos_trabalhados, 0) AS minutos_trabalhados, " +
+    CARGA_DIA + " AS carga_diaria_min, " +
+    "COALESCE(j.saldo_min, -(" + CARGA_DIA + ")) AS saldo_min, " +
+    "COALESCE(j.saida_pendente, false) AS saida_pendente " +
+    "FROM vw_presenca_atual p LEFT JOIN vw_jornada_diaria j " +
+    "ON j.funcionario_id = p.funcionario_id AND j.dia = " + DIA + " " +
+    "WHERE " + FILTRO_NOME + " ORDER BY p.nome",
   semana:
-    "SELECT nome, minutos_trabalhados, carga_semanal_min, saldo_min FROM vw_jornada_semanal " +
-    "WHERE semana = date_trunc('week', now() AT TIME ZONE " + FUSO + ")::date ORDER BY nome",
+    "SELECT p.nome, COALESCE(s.minutos_trabalhados, 0) AS minutos_trabalhados, " +
+    "COALESCE(s.carga_semanal_min, " + CARGA_OUTRO_DIA + " * 5) AS carga_semanal_min, " +
+    "COALESCE(s.saldo_min, -(" + CARGA_OUTRO_DIA + " * 5)) AS saldo_min " +
+    "FROM vw_presenca_atual p LEFT JOIN vw_jornada_semanal s " +
+    "ON s.funcionario_id = p.funcionario_id AND s.semana = date_trunc('week', (" + DIA + ")::timestamp)::date " +
+    "WHERE " + FILTRO_NOME + " ORDER BY p.nome",
   historico:
     "SELECT to_char(ts_evento, 'DD/MM HH24:MI:SS') AS quando, nome, origem, tipo, contabilizado, " +
-    "motivo, rssi, fila FROM vw_historico ORDER BY ts_evento DESC, id DESC LIMIT 50",
+    "motivo, rssi, fila FROM vw_historico " +
+    "WHERE (NULLIF($1::text, '') IS NULL OR ts_evento::date = NULLIF($1::text, '')::date) " +
+    "AND strpos(lower(nome), lower($2::text)) > 0 " +
+    "ORDER BY ts_evento DESC, id DESC LIMIT 50",
   dispositivos:
     "SELECT tipo, identificador, funcionario_nome, firmware_versao, " +
     HORA('ultimo_contato', 'DD/MM HH24:MI:SS') + " AS ultimo_contato, online " +
@@ -382,9 +420,9 @@ const botao = (id, grupo, label, payload, order, x, y, wires, cor) => ({
   enablePointerdown: false, pointerdownPayload: '', pointerdownPayloadType: 'str',
   enablePointerup: false, pointerupPayload: '', pointerupPayloadType: 'str', x, y, wires,
 })
-const campo = (id, grupo, label, order, x, y, wires) => ({
+const campo = (id, grupo, label, order, x, y, wires, modo = 'text') => ({
   id, type: 'ui-text-input', z: Z, group: grupo, name: label, label, order, width: 0, height: 0,
-  topicType: 'msg', mode: 'text', tooltip: '', delay: 300, passthru: false, sendOnDelay: false,
+  topicType: 'msg', mode: modo, tooltip: '', delay: 300, passthru: false, sendOnDelay: false,
   sendOnBlur: true, sendOnEnter: true, className: '', clearable: false, sendOnClear: false,
   icon: '', iconPosition: 'left', payload: '', payloadType: 'str', topic: 'topic', x, y, wires,
 })
@@ -455,7 +493,15 @@ const fluxo = [
     randomFirst: '1', randomLast: '5', randomUnits: 'seconds', drop: true, allowrate: false,
     outputs: 1, x: 380, y: 600, wires: [['f_limpa']] },
   fn('f_limpa', 'mensagem limpa', limpaMensagem, 600, 600,
-     [['pg_presenca', 'pg_hoje', 'pg_semana', 'pg_historico', 'pg_disp']]),
+     [['pg_presenca', 'pg_disp', 'f_filtros']]),
+  // Só as 3 consultas filtradas recebem msg.params (as outras não usam $1/$2).
+  fn('f_filtros', 'monta filtros (dia, nome)', montaFiltros, 600, 680,
+     [['pg_hoje', 'pg_semana', 'pg_historico'], ['x_filtro']], 2),
+  // Campos do painel: Dia e Nome (guardam o valor e pedem atualização imediata).
+  campo('in_f_dia', 'g_filtro', 'Dia (vazio = hoje)', 1, 160, 640, [['f_f_dia']], 'date'),
+  campo('in_f_nome', 'g_filtro', 'Nome contém...', 2, 160, 700, [['f_f_nome']]),
+  fn('f_f_dia', 'guarda dia', guardaFiltroDia, 380, 640, [['delay_painel']]),
+  fn('f_f_nome', 'guarda nome', guardaFiltroNome, 380, 700, [['delay_painel']]),
 
   pg('pg_presenca', 'vw_presenca_atual', SQL.presenca, 820, 560, [['f_presenca']]),
   fn('f_presenca', 'formata presença', formataPresenca, 1040, 560, [['t_presenca'], ['x_presentes']], 2),
@@ -520,19 +566,21 @@ const fluxo = [
 
   G('g_pres', 'Quem está presente agora', 1, 6),
   G('g_disp', 'Dispositivos', 2, 6),
-  G('g_hoje', 'Jornada de hoje', 3, 12),
-  G('g_sem', 'Semana (segunda a domingo)', 4, 6),
-  G('g_graf', 'Horas na semana', 5, 6),
-  G('g_hist', 'Histórico (últimos 50 pontos)', 6, 12),
-  G('g_cmd', 'Comandos para o crachá', 7, 6),
-  G('g_csv', 'Exportar (CSV)', 8, 6),
+  G('g_filtro', 'Filtros (valem para jornada, semana e histórico)', 3, 12),
+  G('g_hoje', 'Jornada do dia', 4, 12),
+  G('g_sem', 'Semana (segunda a domingo) do dia escolhido', 5, 6),
+  G('g_graf', 'Horas na semana', 6, 6),
+  G('g_hist', 'Histórico (últimos 50 pontos)', 7, 12),
+  G('g_cmd', 'Comandos para o crachá', 8, 6),
+  G('g_csv', 'Exportar (CSV)', 9, 6),
 
   // ---------- Dashboard 2.0 (widgets) ----------
   texto('x_presentes', 'g_pres', 1, 1280, 540, 20),
   tabela('t_presenca', 'g_pres', 'Presença', 2, 1280, 580),
   tabela('t_disp', 'g_disp', 'Dispositivos', 1, 1280, 820),
   texto('x_gw', 'g_disp', 2, 1280, 860, 15),
-  tabela('t_hoje', 'g_hoje', 'Jornada de hoje', 1, 1280, 640),
+  texto('x_filtro', 'g_filtro', 3, 1280, 900, 15),
+  tabela('t_hoje', 'g_hoje', 'Jornada', 1, 1280, 640),
   tabela('t_semana', 'g_sem', 'Semana', 1, 1280, 700),
   {
     id: 'g_semana', type: 'ui-chart', z: Z, group: 'g_graf', name: 'Horas na semana', label: '',

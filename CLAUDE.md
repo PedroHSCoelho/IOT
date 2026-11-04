@@ -30,6 +30,8 @@ npm run broker          # terminal 1: broker MQTT (porta 1883). Ligue ANTES do N
 npm run nodered         # terminal 2: Node-RED em http://127.0.0.1:1880 (editor: usuário admin)
 npm run gerar-fluxo     # regenera nodered-dados/flows.json (NUNCA edite o JSON à mão); reinicie o Node-RED
 npm run publicar-teste -- botao 102     # simula crachá (use o 102, o 101 é o da demo)
+npm run publicar-teste -- ack 12 ok 2.0 # simula o ACK de um comando (ou: gateway online|offline|cair)
+npm run firmware-http                   # serve cloud/servidor/firmware/*.bin na porta 8080 (OTA); só na demo
 # painel: http://127.0.0.1:1880/dashboard    CSV: /exportar/historico.csv e /exportar/jornada.csv
 # testes do banco (de cloud/db):  python rodar_sql.py <arquivo.sql>   (precisa de: pip install --user "psycopg[binary]")
 ```
@@ -46,6 +48,8 @@ O Node-RED lê `cloud/.env` com `node --env-file=../.env`. Para o MCP do Supabas
 8. **Dados de teste:** apague depois (`DELETE FROM evento WHERE seq > 0 ...`). O seed (seq negativo) fica.
 9. `npm install` pode falhar uma vez por rede; tente de novo.
 10. Mensagem `offline` do gateway **não** atualiza `ultimo_contato` (de propósito).
+11. **Tabela do Dashboard 2.0:** nome de coluna com ponto (ex.: `'Obs.'`) vira caminho de objeto e a célula aparece **vazia**. Use nomes sem ponto (`'Observação'`).
+12. **Permissão de coluna:** o `nodered` só lê `id, tipo, identificador` de `dispositivo`. Um `UPDATE` que *lê* outra coluna (ex.: `SET x = CASE ... ELSE dispositivo.firmware_versao`) dá `permission denied`. Escreva o `UPDATE` sem ler a coluna (ver o fluxo do ACK).
 
 ## Segurança (estado atual)
-Dashboard e CSV **sem senha**; Node-RED escuta só em `127.0.0.1`. Se abrir para a rede (`uiHost`), proteja com `httpNodeAuth` primeiro.
+Dashboard e CSV **sem senha**; Node-RED escuta só em `127.0.0.1` (`uiHost` em `settings.js`; confira com `netstat -ano | grep :1880`: deve mostrar `127.0.0.1`, não `0.0.0.0`). O único serviço aberto à rede é o `firmware-http` (porta 8080, só `.bin`), e só enquanto ligado. Se abrir para a rede (`uiHost`), proteja com `httpNodeAuth` primeiro.
