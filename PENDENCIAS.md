@@ -1,7 +1,7 @@
 # Pendências e estado do projeto — Crachá Inteligente de Ponto
 
 > **Para quem for retomar (pessoa ou IA):** este arquivo é a fonte da verdade do que está feito e do que falta.
-> Última atualização: **03/11/2026**. Apresentação: **04/12/2026**. Prazos do cronograma (PDF do projeto):
+> Última atualização: **11/11/2026** (início da parte física; ver seção 3A). Apresentação: **04/12/2026**. Prazos do cronograma (PDF do projeto):
 > circuito validado em protoboard até **09/11** · layout da PCI pronto até **14/11** · PCI fabricada e montada até **23/11** · última semana para integração, documentação e ensaio.
 >
 > Leia também: `CLAUDE.md` (convenções e armadilhas), `BANCO_DE_DADOS.md` (especificação do banco),
@@ -44,7 +44,26 @@ Ponta a ponta testado: crachá simulado → MQTT → Node-RED → `registrar_pon
 - [ ] **Antes de 04/12:** reativar o projeto Supabase se pausado (plano gratuito pausa após ~1 semana sem uso); **exportar dump/CSV** do histórico (sem backup automático); testar com hotspot do celular em **2,4 GHz**; limpar dados de teste e decidir o que a demonstração mostra; ensaiar a explicação do banco (chaves, índice, view, função, `REVOKE`, RLS).
 - [ ] **Docker é opcional.** `cloud/docker-compose.yml` está vazio de propósito (notebook sem Docker). Se alguém tiver Docker, pode trocar o `aedes` pelo Mosquitto sem mudar fluxo nem firmware.
 
-## 3. PENDENTE — fora do banco/Node-RED (do PDF do projeto; ninguém começou)
+## 3A. Parte física: ONDE PARAMOS (11/11/2026)
+
+Começamos a validação em protoboard. **Nenhum passo foi executado ainda**; só o plano e o primeiro código estão prontos.
+
+**Onde programar:** PC do Flavio (tem admin e Arduino IDE). **Em mãos:** 2 Heltec LoRa 32 V3 com antenas e 2 cabos USB-C. **Regra de ouro:** nunca ligar a Heltec sem a antena conectada.
+
+Plano (cada teste só começa depois que o anterior passa):
+
+- [ ] **Passo 0 — preparar o Arduino IDE:** em *Preferências*, adicionar a URL `https://resource.heltec.cn/download/package_heltec_esp32_index.json`; instalar o pacote **Heltec ESP32** (plano B: pacote Espressif `esp32` + placa *ESP32S3 Dev Module*); instalar a biblioteca **U8g2**; se a porta COM não aparecer, trocar o cabo (precisa ser de dados) ou instalar o driver CP210x. Para gravar à força: segurar PRG, apertar RST, soltar PRG.
+- [ ] **Confirmar que a placa é a V3** (os pinos do código são da V3; V2/V3.2 mudam).
+- [ ] **Teste 1 — Olá mundo (LED + OLED):** código pronto em `firmware/testes/01_ola_mundo/01_ola_mundo.ino` (LED = GPIO 35, Vext = GPIO 36 em LOW liga o OLED, OLED I2C SDA 17 / SCL 18 / RST 21). Esperado: OLED com contador, LED piscando, linhas no Monitor Serial (115200). Repetir nas **duas** placas.
+- [ ] **Teste 2 — ping-pong LoRa** entre as duas Heltec (915 MHz, BW 125 kHz, SF7, CR 4/5, sync word 0x12, 14 dBm). Código ainda **não escrito**.
+- [ ] **Teste 3 — ler e acertar o DS1302** (CLK 40, DAT 41, RST 42). Código ainda não escrito.
+- [ ] **Teste 4 — botão (debounce 50 ms) + LED + buzzer.** Código ainda não escrito.
+
+Metas do cronograma: protoboard validada até 09/11 (**já passou**), layout da PCI até 14/11, PCI montada até 23/11. Estamos atrasados; priorizar os testes 1–2.
+
+---
+
+## 3. PENDENTE — fora do banco/Node-RED (do PDF do projeto)
 
 - [ ] **Repositório Git (item obrigatório, RNF10).** ✅ Repositório criado e publicado em https://github.com/PedroHSCoelho/IOT (monorepo, branch `main`; `cloud/` e documentação já enviados). **Falta:** cada membro commitar com a própria conta e criar as demais pastas. Estrutura pedida: `firmware/cracha`, `firmware/gateway`, `cloud/`, `pc-agent/`, `hardware/` (KiCad), `enclosure/` (STL/STEP), `docs/`. `.env` e `config.h` **nunca** vão para o Git (usar `config.example.h`). Já existe `cloud/.gitignore` (ignora `.env`) e `cloud/servidor/.gitignore`.
 - [ ] **Divisão de tarefas:** o PDF tem os nomes em branco (A hardware/PCI, B firmware do crachá, C gateway/nuvem, D computador/integração).
