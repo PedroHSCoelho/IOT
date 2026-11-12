@@ -58,7 +58,11 @@ Plano (cada teste só começa depois que o anterior passa):
 - [x] **Teste 1 passou** (12/11/2026, no PC do Flavio).
 - [x] **Teste 2 — ping-pong LoRa passou** (12/11/2026; falta registrar a distância/RSSI de alcance) entre as duas Heltec (915 MHz, BW 125 kHz, SF7, CR 4/5, sync word 0x12, 14 dBm). Código escrito (**ainda não testado**): `firmware/testes/02_pingpong_lora/02_pingpong_lora.ino`; precisa da biblioteca **RadioLib**; mesma sketch nas duas placas, trocando `SOU_MESTRE` (true/false).
 - [ ] **Teste 3 — ler e acertar o DS1302** (CLK 40, DAT 41, RST 42). Código escrito (**ainda não testado**): `firmware/testes/03_relogio_ds1302/03_relogio_ds1302.ino`, sem biblioteca extra. Duas etapas: `ACERTAR_RELOGIO = true` (acerta com a hora do PC), depois `false`; religar a USB após 1 min e conferir que a hora segue certa (bateria CR2032). **Sem bateria por enquanto:** manter `true` (acerta a cada gravação), validar só a leitura com a placa ligada e deixar a etapa de persistência para quando a bateria chegar.
-- [ ] **Teste 4 — botão (debounce 50 ms) + LED + buzzer.** Código ainda não escrito.
+- [ ] **Teste 4 — botão (debounce 50 ms) + LED + buzzer.** Código ainda não escrito. ⏸ **Adiado** (12/11/2026): os componentes ainda não chegaram.
+
+**Foco atual (decisão de 12/11/2026): só (A) Bluetooth crachá↔PC e (B) comunicação com o banco.** Testes de componentes físicos (relógio, botão, buzzer) ficam para quando chegarem.
+
+- [ ] **Teste 5 — BLE (A):** crachá anuncia `UNIFESP-BADGE-101` a cada 500 ms (`firmware/testes/05_ble_anuncio/05_ble_anuncio.ino`, sem biblioteca extra) e o PC mede o RSSI e decide PRESENTE/AUSENTE (`pc-agent/teste_ble_rssi.py`, precisa `pip install bleak`). Código escrito, **ainda não testado**. Depois: bloquear a tela, publicar `origem:"ble"` no MQTT e decidir o desbloqueio (Windows só bloqueia).
 
 Metas do cronograma: protoboard validada até 09/11 (**já passou**), layout da PCI até 14/11, PCI montada até 23/11. Estamos atrasados; priorizar os testes 1–2.
 
