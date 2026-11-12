@@ -55,7 +55,8 @@ Plano (cada teste só começa depois que o anterior passa):
 - [ ] **Passo 0 — preparar o Arduino IDE:** em *Preferências*, adicionar a URL `https://resource.heltec.cn/download/package_heltec_esp32_index.json`; instalar o pacote **Heltec ESP32** (plano B: pacote Espressif `esp32` + placa *ESP32S3 Dev Module*); instalar a biblioteca **U8g2**; se a porta COM não aparecer, trocar o cabo (precisa ser de dados) ou instalar o driver CP210x. Para gravar à força: segurar PRG, apertar RST, soltar PRG.
 - [ ] **Confirmar que a placa é a V3** (os pinos do código são da V3; V2/V3.2 mudam).
 - [ ] **Teste 1 — Olá mundo (LED + OLED):** código pronto em `firmware/testes/01_ola_mundo/01_ola_mundo.ino` (LED = GPIO 35, Vext = GPIO 36 em LOW liga o OLED, OLED I2C SDA 17 / SCL 18 / RST 21). Esperado: OLED com contador, LED piscando, linhas no Monitor Serial (115200). Repetir nas **duas** placas.
-- [ ] **Teste 2 — ping-pong LoRa** entre as duas Heltec (915 MHz, BW 125 kHz, SF7, CR 4/5, sync word 0x12, 14 dBm). Código ainda **não escrito**.
+- [x] **Teste 1 passou** (12/11/2026, no PC do Flavio).
+- [ ] **Teste 2 — ping-pong LoRa** entre as duas Heltec (915 MHz, BW 125 kHz, SF7, CR 4/5, sync word 0x12, 14 dBm). Código escrito (**ainda não testado**): `firmware/testes/02_pingpong_lora/02_pingpong_lora.ino`; precisa da biblioteca **RadioLib**; mesma sketch nas duas placas, trocando `SOU_MESTRE` (true/false).
 - [ ] **Teste 3 — ler e acertar o DS1302** (CLK 40, DAT 41, RST 42). Código ainda não escrito.
 - [ ] **Teste 4 — botão (debounce 50 ms) + LED + buzzer.** Código ainda não escrito.
 
