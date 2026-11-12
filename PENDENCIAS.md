@@ -57,7 +57,7 @@ Plano (cada teste só começa depois que o anterior passa):
 - [ ] **Teste 1 — Olá mundo (LED + OLED):** código pronto em `firmware/testes/01_ola_mundo/01_ola_mundo.ino` (LED = GPIO 35, Vext = GPIO 36 em LOW liga o OLED, OLED I2C SDA 17 / SCL 18 / RST 21). Esperado: OLED com contador, LED piscando, linhas no Monitor Serial (115200). Repetir nas **duas** placas.
 - [x] **Teste 1 passou** (12/11/2026, no PC do Flavio).
 - [x] **Teste 2 — ping-pong LoRa passou** (12/11/2026; falta registrar a distância/RSSI de alcance) entre as duas Heltec (915 MHz, BW 125 kHz, SF7, CR 4/5, sync word 0x12, 14 dBm). Código escrito (**ainda não testado**): `firmware/testes/02_pingpong_lora/02_pingpong_lora.ino`; precisa da biblioteca **RadioLib**; mesma sketch nas duas placas, trocando `SOU_MESTRE` (true/false).
-- [ ] **Teste 3 — ler e acertar o DS1302** (CLK 40, DAT 41, RST 42). Código escrito (**ainda não testado**): `firmware/testes/03_relogio_ds1302/03_relogio_ds1302.ino`, sem biblioteca extra. Duas etapas: `ACERTAR_RELOGIO = true` (acerta com a hora do PC), depois `false`; religar a USB após 1 min e conferir que a hora segue certa (bateria CR2032).
+- [ ] **Teste 3 — ler e acertar o DS1302** (CLK 40, DAT 41, RST 42). Código escrito (**ainda não testado**): `firmware/testes/03_relogio_ds1302/03_relogio_ds1302.ino`, sem biblioteca extra. Duas etapas: `ACERTAR_RELOGIO = true` (acerta com a hora do PC), depois `false`; religar a USB após 1 min e conferir que a hora segue certa (bateria CR2032). **Sem bateria por enquanto:** manter `true` (acerta a cada gravação), validar só a leitura com a placa ligada e deixar a etapa de persistência para quando a bateria chegar.
 - [ ] **Teste 4 — botão (debounce 50 ms) + LED + buzzer.** Código ainda não escrito.
 
 Metas do cronograma: protoboard validada até 09/11 (**já passou**), layout da PCI até 14/11, PCI montada até 23/11. Estamos atrasados; priorizar os testes 1–2.
@@ -78,7 +78,7 @@ Metas do cronograma: protoboard validada até 09/11 (**já passou**), layout da 
 - [ ] **Requisitos desejáveis:** Wake-on-LAN (só PC no cabo, mesma rede); OLED do crachá com hora e status.
 - [ ] **Metas de desempenho a medir e registrar:** botão→bipe ≤ 2 s; aproximar→desbloqueio ≤ 5 s; afastar→bloqueio ≤ 10 s; evento→painel ≤ 5 s; alcance LoRa no prédio (registrar a distância); 0 perdas (fila no crachá); 0 duplicatas; erro do relógio < 2 s.
 - [ ] **Apresentação com evidências:** vídeos, prints do painel, OLED mostrando eventos, fotos da placa.
-- [ ] **Compras (conferir se foi feito):** CR2032 (no lugar da CR2016) e barra fêmea 1×20 (no lugar da 1×15).
+- [ ] **Compras (conferir se foi feito):** ⚠ em 12/11/2026 a **CR2032 ainda não chegou** (Mercado Livre); o DS1302 já está em mãos. Teste 3 segue **sem bateria** (só a etapa de persistência fica adiada). CR2032 (no lugar da CR2016) e barra fêmea 1×20 (no lugar da 1×15).
 
 ---
 
