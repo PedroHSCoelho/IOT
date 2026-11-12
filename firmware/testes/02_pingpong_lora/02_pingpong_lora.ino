@@ -11,7 +11,7 @@
 //
 // ATENCAO: NUNCA ligue a Heltec sem a antena conectada (pode queimar o radio).
 //
-// Biblioteca necessaria (Gerenciar Bibliotecas): "RadioLib" (autor: Jan Gromes) e "U8g2".
+// Bibliotecas necessarias (Gerenciar Bibliotecas): "RadioLib" 8.x (Jan Gromes) e "U8g2".
 // Placa: "WiFi LoRa 32(V3)" (pacote Heltec ESP32) ou "ESP32S3 Dev Module".
 
 #include <RadioLib.h>
@@ -19,13 +19,14 @@
 
 const bool SOU_MESTRE = true;   // <<< MUDE para false na segunda placa
 
-// ---- Parametros LoRa (iguais aos do projeto; as duas placas PRECISAM ser identicas) ----
-const float FREQ_MHZ   = 915.0;  // frequencia (faixa liberada no Brasil)
-const float LARGURA_KHZ = 125.0; // largura de banda
-const int   SF         = 7;      // fator de espalhamento (menor = mais rapido, menor alcance)
-const int   CR         = 5;      // taxa de codificacao 4/5
-const int   SYNC_WORD  = 0x12;   // "senha de grupo": so ouve quem usa o mesmo valor
-const int   POTENCIA   = 14;     // dBm
+// ---- Parametros LoRa (as duas placas PRECISAM ser identicas) ----
+// Na RadioLib 8, frequencia e largura de banda sao em Hz.
+const uint32_t FREQ_HZ    = 915000000;  // 915 MHz (faixa liberada no Brasil)
+const uint32_t LARGURA_HZ = 125000;     // 125 kHz
+const int      SF         = 7;          // fator de espalhamento (menor = mais rapido, menor alcance)
+const int      CR         = 5;          // taxa de codificacao 4/5
+const int      SYNC_WORD  = 0x12;       // "senha de grupo": so ouve quem usa o mesmo valor
+const int      POTENCIA   = 14;         // dBm
 
 // ---- Pinos da Heltec V3 ----
 const int PINO_VEXT = 36;        // energia do OLED (LOW = ligado)
@@ -69,8 +70,19 @@ void setup() {
   tela.begin();
 
   SPI.begin(LORA_SCK, LORA_MISO, LORA_MOSI, LORA_NSS);
-  // 1.8 = tensao do oscilador (TCXO) da Heltec V3
-  int estado = radio.begin(FREQ_MHZ, LARGURA_KHZ, SF, CR, SYNC_WORD, POTENCIA, 8, 1.8);
+
+  // Heltec V3 usa TCXO de 1.8 V (o padrao da biblioteca e 1.6 V)
+  radio.tcxoVoltage = RadioLibTCXOVoltage_t::Voltage1V8;
+
+  ConfigLoRa_t cfg;
+  cfg.frequency       = FREQ_HZ;
+  cfg.bandwidth       = LARGURA_HZ;
+  cfg.spreadingFactor = SF;
+  cfg.codingRate      = CR;
+  cfg.syncWord        = SYNC_WORD;
+  cfg.power           = POTENCIA;
+  cfg.preambleLength  = 8;
+  int estado = radio.begin(cfg);
   if (estado != RADIOLIB_ERR_NONE) parar("radio.begin falhou", estado);
 
   radio.setDio1Action(aoChegarPacote);
@@ -117,7 +129,8 @@ void loop() {
         String info = "RSSI " + String(radio.getRSSI(), 0) + " SNR " + String(radio.getSNR(), 1);
         delay(100);               // da tempo do mestre voltar a escutar
         digitalWrite(PINO_LED, HIGH);
-        radio.transmit("PONG" + recebido.substring(4));
+        String resposta = "PONG" + recebido.substring(4);
+        radio.transmit(resposta);
         digitalWrite(PINO_LED, LOW);
         mostrar("ESCRAVA", "ouvi: " + recebido, info);
       }
