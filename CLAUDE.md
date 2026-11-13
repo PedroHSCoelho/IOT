@@ -1,12 +1,14 @@
 # CLAUDE.md — Crachá Inteligente de Ponto (UNIFESP, Projeto IoT)
 
 Projeto da disciplina de IoT (prof. Gabriel de Freitas Fernandes). Entrega e apresentação: **04/12/2026**.
-Um crachá (Heltec LoRa 32 V3) bate ponto pelo botão (LoRa → gateway) e por BLE (agente Python no PC). Tudo chega por MQTT ao Node-RED, é gravado no PostgreSQL (Supabase) e aparece num painel de gerência.
+Um crachá (Heltec LoRa 32 V3) bate ponto pelo botão (LoRa → gateway). O mesmo clique desbloqueia o PC por BLE (agente Python no PC; **o PC não registra ponto**, só libera/bloqueia a tela; fluxo em `docs/FLUXO_BLE_E_BLOQUEIO.md`). O ponto chega por MQTT ao Node-RED, é gravado no PostgreSQL (Supabase) e aparece num painel de gerência.
 
 **COMECE POR `PENDENCIAS.md`**: estado atual, o que falta e divergências entre documentos.
 
 ## Como trabalhar com este usuário
 - Os alunos **nunca usaram Node-RED, MQTT nem banco de dados**. Explique cada conceito novo em português simples (analogias), antes de escrever código. Comentários dos arquivos em português.
+- **A cada passo concluído:** `git pull`, commit só dos arquivos do passo e `git push` (a equipe alterna entre o notebook do Pedro e o PC do Flávio). Nunca commite `.env` nem `config.h`.
+- **Mantenha `docs/DIARIO_DE_BORDO.md` atualizado a cada passo:** o que foi feito, decisões, medições e **principalmente os problemas** (causa e solução). É a base do relatório e do relato da apresentação.
 - **Não mude o modelo de dados (tabelas/colunas) sem perguntar.** Decisões novas: registre em `PENDENCIAS.md` (seção 5).
 - Notebook **sem administrador e sem Docker**: tudo é portátil (Node.js + `npm`). Não proponha instaladores.
 - Não exiba, repita nem grave em documentos a senha do usuário. Ela vive só em `cloud/.env` (fora do Git). O usuário decidiu usar a **mesma senha** para o admin do banco, o `nodered` e o editor do Node-RED.
@@ -17,6 +19,10 @@ Remoto: https://github.com/PedroHSCoelho/IOT (branch `main`). `README.md` é a p
 ```text
 BANCO_DE_DADOS.md        especificação do banco (regras R1-R8, testes T1-T10)
 PENDENCIAS.md            estado e pendências  ← leia primeiro
+docs/DIARIO_DE_BORDO.md  relato: linha do tempo, problemas, decisões, medições (atualizar a cada passo)
+docs/FLUXO_BLE_E_BLOQUEIO.md   botão desbloqueia o PC; PC bloqueia ao afastar (estados, anúncio BLE, parâmetros)
+firmware/testes/         testes de protoboard (01 OLED, 02 LoRa, 03 DS1302, 05 BLE, 06 gateway MQTT, 07 crachá PRG)
+pc-agent/                agente_bloqueio.py (v2) e teste_ble_rssi.py; precisa de: pip install bleak
 cloud/.env               segredos (NÃO vai ao Git); modelo em .env.example
 cloud/db/init/01..05_*.sql   schema, funções, views, usuários/RLS, seed (rodar nesta ordem)
 cloud/db/testes/testes_regras.sql   31 checks; roda em transação com ROLLBACK
@@ -50,6 +56,11 @@ O Node-RED lê `cloud/.env` com `node --env-file=../.env`. Para o MCP do Supabas
 10. Mensagem `offline` do gateway **não** atualiza `ultimo_contato` (de propósito).
 11. **Tabela do Dashboard 2.0:** nome de coluna com ponto (ex.: `'Obs.'`) vira caminho de objeto e a célula aparece **vazia**. Use nomes sem ponto (`'Observação'`).
 12. **Permissão de coluna:** o `nodered` só lê `id, tipo, identificador` de `dispositivo`. Um `UPDATE` que *lê* outra coluna (ex.: `SET x = CASE ... ELSE dispositivo.firmware_versao`) dá `permission denied`. Escreva o `UPDATE` sem ler a coluna (ver o fluxo do ACK).
+
+13. **BLE/RSSI é ruidoso.** Corpo e mão atenuam o sinal (5–10 dB). Média de RSSI + limiar único fez o PC desbloquear ao tapar o crachá e demorar para liberar (agente v1, 12/11/2026). Por isso: desbloqueio só pelo clique do botão (RSSI do pacote do clique) e bloqueio pelo **pico** da janela, com aviso.
+14. **O agente do PC não publica `origem:"ble"`.** No banco, `PRESENTE`=CHEGADA e `AUSENTE`=SAÍDA (R3): cada bloqueio por distância viraria uma saída. Só o botão registra ponto; o PC publica apenas `pc/{badge}/status`.
+15. **RadioLib 8.x mudou a API** (frequência em Hz, `ConfigLoRa_t`, `radio.tcxoVoltage`); use a forma de `firmware/testes/02_pingpong_lora`. BLE: o pacote de placas 2.x e o 3.x usam tipos de texto diferentes (`std::string` × `String`); o teste 05 trata os dois.
+16. **O Windows não deixa um programa comum desbloquear a tela.** A tela de bloqueio do agente é uma janela própria (demonstração, não segurança). Saída de emergência: ESC.
 
 ## Segurança (estado atual)
 Dashboard e CSV **sem senha**; Node-RED escuta só em `127.0.0.1` (`uiHost` em `settings.js`; confira com `netstat -ano | grep :1880`: deve mostrar `127.0.0.1`, não `0.0.0.0`). O único serviço aberto à rede é o `firmware-http` (porta 8080, só `.bin`), e só enquanto ligado. Se abrir para a rede (`uiHost`), proteja com `httpNodeAuth` primeiro.

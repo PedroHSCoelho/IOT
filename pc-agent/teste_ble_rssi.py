@@ -1,4 +1,7 @@
-"""Teste 5 (lado do PC): escuta o cracha por Bluetooth e diz se ele esta PRESENTE ou AUSENTE.
+"""FERRAMENTA DE CALIBRACAO (v1): escuta o cracha por Bluetooth e mostra o RSSI medio e PRESENTE/AUSENTE.
+
+NAO e o agente final. O agente (agente_bloqueio.py, v2) nao usa media nem PRESENTE/AUSENTE: o botao libera e o
+pico bloqueia (docs/FLUXO_BLE_E_BLOQUEIO.md). Use este script so para MEDIR o RSSI em varias distancias.
 
 Ainda NAO bloqueia a tela e NAO envia nada ao MQTT: so mede e mostra. Serve para
   1) provar que o Bluetooth do PC enxerga o cracha (compatibilidade BLE), e

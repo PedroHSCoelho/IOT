@@ -40,7 +40,7 @@ Com os dois ligados, num terceiro terminal:
 
 ```text
 npm run publicar-teste -- botao 102      # botão do crachá 102 (de teste)
-npm run publicar-teste -- ble PRESENTE   # BLE do crachá 101
+npm run publicar-teste -- ble PRESENTE   # BLE do crachá 101 (o agente real NÃO publica mais isto; serve só para testar o banco)
 npm run publicar-teste -- botao 999      # crachá que não existe → vai para evento_rejeitado
 ```
 
@@ -54,7 +54,7 @@ Para conferir no Supabase: `SELECT * FROM vw_historico ORDER BY ts_evento DESC;`
 
 | Tópico | Quem publica | O que acontece |
 | --- | --- | --- |
-| `unifesp/ponto/evento` | gateway (botão) e agente do PC (BLE) | Node-RED chama `registrar_ponto()` |
+| `unifesp/ponto/evento` | gateway (botão). O agente do PC **não** publica aqui (só controla a tela; ver `docs/FLUXO_BLE_E_BLOQUEIO.md`) | Node-RED chama `registrar_ponto()` |
 | `unifesp/ponto/gateway/status` | gateway | *retained*: `{"estado":"online","rssi":-71,"snr":9.5}`; Last Will `{"estado":"offline"}`. `online` atualiza `ultimo_contato` do `gw-lab` (ou do `id` do JSON); `offline` só muda a linha "Gateway" do painel. Simular: `npm run publicar-teste -- gateway online\|offline\|cair` |
 | `unifesp/ponto/pc/<badge>/status` | agente do PC | atualiza `ultimo_contato` do `pc-lab-01` (ou do `id` enviado no JSON) |
 

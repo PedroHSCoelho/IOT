@@ -1,30 +1,35 @@
-"""Agente do PC (versao 1): cobre a tela quando o cracha se afasta e libera quando ele volta.
+"""Agente do PC (versao 2): o BOTAO do cracha desbloqueia; o afastamento bloqueia.
 
-Como funciona (analogia: uma "coleira eletronica"):
-  - O cracha "grita" por Bluetooth (BLE) "UNIFESP-BADGE-101" (firmware teste 5).
-  - Este programa mede a forca do sinal (RSSI, em dBm; mais perto de 0 = mais forte = mais perto).
-  - Cracha longe (mais de ~1 m) -> aparece uma tela cheia "BLOQUEADO" cobrindo tudo.
-  - Cracha perto de novo -> a tela some sozinha (o "desbloqueio").
+Ideia (12/11/2026), como um cartao passado no leitor:
+  1) O PC esta BLOQUEADO (tela cheia propria cobrindo tudo).
+  2) O funcionario aperta o botao do cracha. O cracha avisa por Bluetooth (BLE) mudando um contador no
+     anuncio. O PC ve o contador mudar e mede o RSSI (forca do sinal) DAQUELE pacote.
+     Se esta perto (RSSI > --liberar), o PC LIBERA na hora. Sem media, sem espera.
+  3) Com o PC liberado comeca o MONITORAMENTO: se o cracha se afasta, o PC avisa ("bloqueando em 5 s")
+     e bloqueia. Para nao bloquear quando alguem tapa o cracha com o corpo/mao, usamos o MELHOR RSSI
+     dos ultimos segundos (o pico), e so agimos se ficar fraco por bastante tempo.
+  4) Apertar o botao com o PC ja liberado NAO faz nada no PC (o ponto e registrado por outro caminho:
+     LoRa -> gateway -> banco). O PC nunca registra ponto: so bloqueia/libera.
 
-ISTO E UM BLOQUEIO DE DEMONSTRACAO, nao de seguranca: o Windows nao deixa programas comuns
-desbloquear a tela de verdade, entao desenhamos uma tela propria por cima de tudo. Ctrl+Alt+Del ou
-outro usuario conseguem contornar. Diga isso na apresentacao.
+Por que assim? No teste da versao 1 (media + limiares) o PC desbloqueava quando o usuario tapava o cracha
+e demorava para liberar por causa da media. Veja docs/FLUXO_BLE_E_BLOQUEIO.md e docs/DIARIO_DE_BORDO.md.
 
-SAIDA DE EMERGENCIA: com a tela de bloqueio aparecendo, aperte ESC para encerrar o agente.
-(Em Ctrl+C no terminal tambem encerra.)
+ISTO E UM BLOQUEIO DE DEMONSTRACAO, nao de seguranca: o Windows nao deixa programas comuns desbloquear
+a tela de verdade, entao desenhamos uma tela propria por cima de tudo. Ctrl+Alt+Del ou outro usuario
+contornam. Um outro ESP32 poderia copiar o anuncio (sem assinatura). Diga isso na apresentacao.
 
-Instalar (uma vez):   pip install bleak        (o tkinter ja vem com o Python do Windows)
+SAIDA DE EMERGENCIA: com a tela de bloqueio aparecendo, aperte ESC para encerrar o agente (ou Ctrl+C no terminal).
+
+Instalar (uma vez):   pip install bleak        (opcional, para avisar o servidor: pip install paho-mqtt)
 Rodar:                python agente_bloqueio.py
-Ajustar distancia:    python agente_bloqueio.py --ausente -55 --presente -52   (mais negativo = mais longe)
-
-Calibracao medida em 12/11/2026 (cracha sobre a mesa, sem corpo):
-  0,5 m = -41 dBm | 1 m = -48 | 1,5 m = -52 | 2 m = -56,5
-  Por isso: bloqueia quando a media fica abaixo de -50 (um pouco alem de 1 m) e so libera acima de -47
-  (a diferenca entre os dois evita a tela ficar "piscando" na fronteira). Com o cracha NO CORPO o sinal
-  cai 5 a 10 dB: se bloquear cedo demais, use --ausente -58 --presente -55.
+Desenvolver sem se trancar:   python agente_bloqueio.py --iniciar-liberado
+Ajustar:              --liberar -60  (clique valido se o RSSI do clique for MAIOR que isto)
+                      --manter -70 --janela 8 --seg-ausente 10 --aviso 5   (politica de bloqueio)
+Opcional (ainda nao testado):  --mqtt 192.168.0.10   publica o status do PC em unifesp/ponto/pc/<badge>/status
 """
 import argparse
 import asyncio
+import json
 import threading
 import time
 import tkinter as tk
@@ -32,30 +37,39 @@ from collections import deque
 
 from bleak import BleakScanner
 
-PREFIXO = "UNIFESP-BADGE"   # o cracha anuncia "UNIFESP-BADGE-101"
+PREFIXO = "UNIFESP-BADGE"   # nome anunciado pelo cracha
+ID_EMPRESA = 0xFFFF         # id generico usado nos dados do fabricante (ver firmware 05)
 
 ap = argparse.ArgumentParser()
-ap.add_argument("--ausente", type=float, default=-50, help="bloqueia se a media ficar abaixo disto (dBm)")
-ap.add_argument("--presente", type=float, default=-47, help="libera se a media ficar acima disto (dBm)")
-ap.add_argument("--seg-ausente", type=float, default=3, help="segundos longe antes de bloquear")
-ap.add_argument("--seg-presente", type=float, default=2, help="segundos perto antes de liberar")
-ap.add_argument("--sumiu", type=float, default=5, help="segundos sem ouvir o cracha = ausente")
+ap.add_argument("--badge", type=int, default=101, help="numero do cracha que desbloqueia este PC")
+ap.add_argument("--liberar", type=float, default=-60, help="clique so vale se o RSSI dele for maior que isto (dBm)")
+ap.add_argument("--manter", type=float, default=-70, help="liberado: 'longe' = melhor RSSI da janela abaixo disto (dBm)")
+ap.add_argument("--janela", type=float, default=8, help="segundos considerados para o melhor RSSI (pico)")
+ap.add_argument("--seg-ausente", type=float, default=10, help="segundos 'longe' seguidos antes do aviso")
+ap.add_argument("--aviso", type=float, default=5, help="segundos de contagem 'bloqueando em N s' antes de bloquear")
+ap.add_argument("--iniciar-liberado", action="store_true", help="comeca liberado (util para desenvolver)")
+ap.add_argument("--mqtt", default=None, help="IP do broker MQTT (opcional): publica o status do PC")
+ap.add_argument("--mqtt-porta", type=int, default=1883)
 ARGS = ap.parse_args()
 
-ultimas = deque(maxlen=5)    # ultimas 5 leituras de RSSI (usamos a media, que e menos "nervosa")
-visto_em = 0.0               # quando ouvimos o cracha pela ultima vez
-nome_visto = ""
+JANELA_CLIQUE = 1.0         # segundos esperando um pacote forte depois de ver o clique
+pacotes = deque()           # (hora, rssi, boot, contador): a thread do Bluetooth coloca, a tela le
 parar = threading.Event()
 
 
+# ---------------------------------------------------------------- Bluetooth (thread de fundo)
 def ao_detectar(dispositivo, anuncio):
-    """O PC chama isto a cada anuncio BLE que escuta; guardamos so os do cracha."""
-    global visto_em, nome_visto
+    """O PC chama isto a cada anuncio BLE que escuta; guardamos so os do NOSSO cracha."""
     nome = anuncio.local_name or dispositivo.name or ""
-    if nome.startswith(PREFIXO):
-        ultimas.append(anuncio.rssi)
-        visto_em = time.time()
-        nome_visto = nome
+    dados = anuncio.manufacturer_data.get(ID_EMPRESA)
+    if not nome.startswith(PREFIXO) or not dados or len(dados) < 6 or dados[0] != 1:
+        return
+    badge = dados[1] | (dados[2] << 8)
+    if badge != ARGS.badge:
+        return
+    boot = dados[3]
+    contador = dados[4] | (dados[5] << 8)
+    pacotes.append((time.time(), anuncio.rssi, boot, contador))
 
 
 async def ouvir():
@@ -72,81 +86,203 @@ def thread_ble():
         parar.set()
 
 
+# ---------------------------------------------------------------- MQTT opcional
+class Status:
+    """Publica 'liberado'/'bloqueado' em unifesp/ponto/pc/<badge>/status (so atualiza ultimo_contato do PC)."""
+    def __init__(self):
+        self.cliente = None
+        if not ARGS.mqtt:
+            return
+        try:
+            import paho.mqtt.client as mqtt
+            try:
+                self.cliente = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=f"agente-pc-{ARGS.badge}")
+            except AttributeError:                       # paho-mqtt 1.x
+                self.cliente = mqtt.Client(client_id=f"agente-pc-{ARGS.badge}")
+            self.cliente.connect_async(ARGS.mqtt, ARGS.mqtt_porta)
+            self.cliente.loop_start()
+        except Exception as erro:
+            print(f"MQTT desativado ({erro}). Rode: pip install paho-mqtt")
+            self.cliente = None
+
+    def publicar(self, estado, rssi=None):
+        if not self.cliente:
+            return
+        corpo = {"estado": estado, **({"rssi": round(rssi)} if rssi is not None else {})}
+        self.cliente.publish(f"unifesp/ponto/pc/{ARGS.badge}/status", json.dumps(corpo), qos=0)
+
+
+# ---------------------------------------------------------------- Agente (interface + decisoes)
 class Agente:
     def __init__(self):
         self.raiz = tk.Tk()
-        self.raiz.withdraw()                 # janela principal escondida; so a tela de bloqueio aparece
-        self.bloqueado = False
-        self.tela = None
-        self.desde_perto = None              # desde quando a media esta acima do limiar de liberar
-        self.desde_longe = time.time()       # comeca contando: se o cracha nao aparecer, bloqueia
-        self.inicio = time.time()
+        self.raiz.withdraw()                  # janela principal escondida; so as telas de bloqueio/aviso aparecem
+        self.status = Status()
+        self.estado = "LIBERADO"
+        self.tela = None                      # tela cheia de bloqueio
+        self.aviso = None                     # janelinha "bloqueando em N s"
+        self.hist = deque()                   # (hora, rssi) dos pacotes recentes (monitoramento)
+        self.boot = None                      # ultimo "boot" visto (para nao confundir reinicio com clique)
+        self.contador = None                  # ultimo contador de cliques visto
+        self.clique = None                    # clique em analise
+        self.desde_longe = None
+        self.aviso_fim = None
+        self.ultimo_pacote = 0.0
+        self.ultimo_rssi = None
+        self.msg = ""
+        self.ultimo_status = 0.0
         threading.Thread(target=thread_ble, daemon=True).start()
+        if not ARGS.iniciar_liberado:
+            self.bloquear("início")
         self.ciclo()
 
-    # ---------- decisao ----------
-    def media(self, agora):
-        if not ultimas or agora - visto_em > ARGS.sumiu:
-            return None                       # sumiu
-        return sum(ultimas) / len(ultimas)
+    # ---------- leitura dos pacotes ----------
+    def processar_pacotes(self):
+        while pacotes:
+            t, rssi, boot, cont = pacotes.popleft()
+            self.ultimo_pacote, self.ultimo_rssi = t, rssi
+            self.hist.append((t, rssi))
+            if self.boot != boot:
+                # 1a vez que vemos o cracha, ou ele reiniciou: so sincroniza. NAO e clique.
+                self.boot, self.contador = boot, cont
+            elif cont != self.contador:
+                self.contador = cont          # contador mudou = botao apertado
+                self.clique = {"t": t, "melhor": rssi, "feito": False}
+                print(f"\n>>> clique detectado (RSSI {rssi:.0f} dBm)")
+            elif self.clique and not self.clique["feito"] and t - self.clique["t"] <= JANELA_CLIQUE:
+                self.clique["melhor"] = max(self.clique["melhor"], rssi)   # melhor pacote logo apos o clique
 
+    # ---------- decisao do clique ----------
+    def decidir_clique(self, agora):
+        c = self.clique
+        if not c or c["feito"]:
+            return
+        if c["melhor"] > ARGS.liberar:
+            c["feito"] = True
+            if self.estado == "BLOQUEADO":
+                self.liberar(c["melhor"])
+            else:
+                self.desde_longe = None       # clique forte com o PC liberado: prova de presenca, cancela aviso
+                self.fechar_aviso()
+        elif agora - c["t"] >= JANELA_CLIQUE:
+            c["feito"] = True
+            if self.estado == "BLOQUEADO":
+                self.msg = f"Clique ignorado: crachá longe ({c['melhor']:.0f} dBm). Aproxime e aperte de novo."
+                print(f"\n>>> {self.msg}")
+
+    # ---------- monitoramento (so com o PC liberado) ----------
+    def monitorar(self, agora):
+        while self.hist and agora - self.hist[0][0] > ARGS.janela:
+            self.hist.popleft()
+        melhor = max((r for _, r in self.hist), default=None)    # PICO da janela (ignora quedas por obstrucao)
+        longe = melhor is None or melhor < ARGS.manter
+
+        if not longe:
+            self.desde_longe = None
+            self.fechar_aviso()
+            return
+        if self.desde_longe is None:
+            self.desde_longe = agora
+        if self.aviso_fim is None and agora - self.desde_longe >= ARGS.seg_ausente:
+            self.aviso_fim = agora + ARGS.aviso
+            self.abrir_aviso()
+        if self.aviso_fim is not None:
+            restante = self.aviso_fim - agora
+            if restante <= 0:
+                self.bloquear("crachá se afastou")
+            elif self.aviso:
+                self.rotulo_aviso.config(text=f"Crachá não detectado. Bloqueando em {restante:.0f} s")
+
+    # ---------- ciclo principal (a cada 100 ms) ----------
     def ciclo(self):
         if parar.is_set():
             self.raiz.destroy()
             return
         agora = time.time()
-        m = self.media(agora)
+        self.processar_pacotes()
+        self.decidir_clique(agora)
+        if self.estado == "LIBERADO":
+            self.monitorar(agora)
+        else:
+            while self.hist and agora - self.hist[0][0] > ARGS.janela:
+                self.hist.popleft()
 
-        perto = m is not None and m > ARGS.presente
-        longe = m is None or m < ARGS.ausente
-        self.desde_perto = (self.desde_perto or agora) if perto else None
-        self.desde_longe = (self.desde_longe or agora) if longe else None
-
-        # 5 s de tolerancia no inicio, para o PC achar o cracha antes de decidir
-        if not self.bloqueado and self.desde_longe and agora - self.inicio > 5 \
-                and agora - self.desde_longe >= ARGS.seg_ausente:
-            self.bloquear()
-        elif self.bloqueado and self.desde_perto and agora - self.desde_perto >= ARGS.seg_presente:
-            self.liberar()
-
-        texto = "sem sinal" if m is None else f"{m:.1f} dBm"
-        estado = "BLOQUEADO" if self.bloqueado else "liberado"
-        print(f"\rRSSI medio: {texto:<12} {estado:<10}", end="", flush=True)
+        idade = agora - self.ultimo_pacote if self.ultimo_pacote else None
+        sinal = "sem sinal" if idade is None or idade > 3 else f"{self.ultimo_rssi:.0f} dBm"
+        print(f"\r{self.estado:<10} sinal: {sinal:<10}", end="", flush=True)
         if self.tela:
-            self.rotulo_rssi.config(text=f"sinal: {texto}")
+            self.rotulo_sinal.config(text=f"sinal do crachá: {sinal}")
+            self.rotulo_msg.config(text=self.msg)
             self.tela.lift()
             self.tela.attributes("-topmost", True)
-        self.raiz.after(300, self.ciclo)
+        if agora - self.ultimo_status > 30:   # "estou vivo" para o painel
+            self.ultimo_status = agora
+            self.status.publicar(self.estado.lower(), self.ultimo_rssi if idade and idade < 3 else None)
+        self.raiz.after(100, self.ciclo)
 
-    # ---------- tela de bloqueio ----------
-    def bloquear(self):
-        self.bloqueado = True
+    # ---------- telas ----------
+    def bloquear(self, motivo):
+        self.fechar_aviso()
+        self.estado = "BLOQUEADO"
+        self.aviso_fim = self.desde_longe = None
+        self.msg = "Aproxime o crachá e aperte o botão"
         t = tk.Toplevel(self.raiz)
         t.configure(bg="#0b1d3a")
         t.attributes("-fullscreen", True)
         t.attributes("-topmost", True)
         tk.Label(t, text="BLOQUEADO", font=("Segoe UI", 64, "bold"), fg="white", bg="#0b1d3a").pack(expand=True, pady=(120, 0))
-        tk.Label(t, text="Aproxime o crachá para desbloquear", font=("Segoe UI", 28), fg="#9fb4d6", bg="#0b1d3a").pack()
-        self.rotulo_rssi = tk.Label(t, text="", font=("Segoe UI", 18), fg="#9fb4d6", bg="#0b1d3a")
-        self.rotulo_rssi.pack(expand=True)
+        tk.Label(t, text="Aperte o botão do crachá para desbloquear", font=("Segoe UI", 28),
+                 fg="#9fb4d6", bg="#0b1d3a").pack()
+        self.rotulo_msg = tk.Label(t, text=self.msg, font=("Segoe UI", 18), fg="#ffd166", bg="#0b1d3a")
+        self.rotulo_msg.pack(pady=(30, 0))
+        self.rotulo_sinal = tk.Label(t, text="", font=("Segoe UI", 16), fg="#9fb4d6", bg="#0b1d3a")
+        self.rotulo_sinal.pack(expand=True)
         tk.Label(t, text="ESC = encerrar o agente (saída de emergência)", font=("Segoe UI", 12),
                  fg="#5d7099", bg="#0b1d3a").pack(side="bottom", pady=20)
         t.bind("<Escape>", lambda e: parar.set())
         t.focus_force()
         self.tela = t
-        print("\n>>> crachá longe: tela BLOQUEADA")
+        self.status.publicar("bloqueado")
+        print(f"\n>>> PC BLOQUEADO ({motivo})")
 
-    def liberar(self):
-        self.bloqueado = False
+    def liberar(self, rssi):
+        self.estado = "LIBERADO"
         if self.tela:
             self.tela.destroy()
             self.tela = None
-        print("\n>>> crachá perto: tela LIBERADA")
+        self.hist.clear()
+        self.hist.append((time.time(), rssi))  # o pacote do clique ja conta como "presente"
+        self.desde_longe = self.aviso_fim = None
+        self.msg = ""
+        self.status.publicar("liberado", rssi)
+        print(f"\n>>> PC LIBERADO pelo botão (RSSI do clique {rssi:.0f} dBm)")
+
+    def abrir_aviso(self):
+        if self.aviso:
+            return
+        t = tk.Toplevel(self.raiz)
+        t.overrideredirect(True)
+        t.attributes("-topmost", True)
+        t.configure(bg="#b45309")
+        largura = t.winfo_screenwidth()
+        t.geometry(f"560x80+{(largura - 560) // 2}+40")
+        self.rotulo_aviso = tk.Label(t, text="", font=("Segoe UI", 18, "bold"), fg="white", bg="#b45309")
+        self.rotulo_aviso.pack(expand=True, fill="both")
+        self.aviso = t
+        print("\n>>> aviso: crachá longe, vai bloquear")
+
+    def fechar_aviso(self):
+        self.aviso_fim = None
+        if self.aviso:
+            self.aviso.destroy()
+            self.aviso = None
 
 
 if __name__ == "__main__":
-    print(f"Agente ligado. Bloqueia abaixo de {ARGS.ausente} dBm, libera acima de {ARGS.presente} dBm.")
-    print("Ctrl+C para encerrar. Na tela de bloqueio, ESC encerra.\n")
+    print(f"Agente ligado (crachá {ARGS.badge}). Clique válido > {ARGS.liberar} dBm; "
+          f"bloqueia se o pico de {ARGS.janela:.0f} s ficar < {ARGS.manter} dBm por {ARGS.seg_ausente:.0f} s "
+          f"(+{ARGS.aviso:.0f} s de aviso).")
+    print("Ctrl+C encerra. Na tela de bloqueio, ESC encerra.\n")
     try:
         Agente().raiz.mainloop()
     except KeyboardInterrupt:

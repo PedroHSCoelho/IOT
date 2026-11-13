@@ -11,7 +11,13 @@ O sistema substitui o relógio de ponto. Um **crachá** (placa Heltec WiFi LoRa 
 | Origem | Como acontece | Caminho até o banco |
 | --- | --- | --- |
 | `botao` | Funcionário aperta o botão do crachá, em qualquer lugar do prédio | Crachá → LoRa 915 MHz → gateway (2ª Heltec) → Wi-Fi/MQTT → Node-RED → PostgreSQL |
-| `ble` | O computador detecta o crachá por Bluetooth (BLE) quando ele chega perto ou se afasta | Crachá → BLE → agente Python no PC → Wi-Fi/MQTT → Node-RED → PostgreSQL |
+| `ble` | O computador detecta o crachá por Bluetooth (BLE) quando ele chega perto ou se afasta (**não usada no fluxo final**, ver nota abaixo) | Crachá → BLE → agente Python no PC → Wi-Fi/MQTT → Node-RED → PostgreSQL |
+
+> **Atualização de 12/11/2026 (modelo de dados inalterado):** no fluxo final o BLE **não registra ponto**. O botão do
+> crachá registra o ponto (LoRa) e também desbloqueia o PC (BLE); o agente do PC só libera e bloqueia a tela.
+> Motivo: se `AUSENTE` virasse SAÍDA, todo bloqueio por distância (ex.: ir ao banheiro) registraria uma saída.
+> A origem `ble`, a regra R3 para `ble` e os testes T4/E2/E3 **continuam válidos e implementados**, apenas sem uso
+> pelo agente. O PC publica só `unifesp/ponto/pc/{badge}/status` (renova `ultimo_contato`). Ver `docs/FLUXO_BLE_E_BLOQUEIO.md`.
 
 O **Node-RED** recebe as mensagens MQTT do tópico `unifesp/ponto/evento` e chama o banco. O banco **guarda o histórico** e **calcula as horas trabalhadas**, que aparecem no painel de gerência do Node-RED.
 
