@@ -9,6 +9,25 @@
 
 ---
 
+## 0. RETOMADA: de onde continuar (fim da sessão de 12/11/2026)
+
+**Como retomar:** abrir o Claude Code neste diretório e dizer "continue o projeto". Ele lê `CLAUDE.md` → este arquivo → `docs/DIARIO_DE_BORDO.md`. Antes de qualquer coisa: `git pull`.
+
+**Onde paramos:** testes de protoboard 1 (OLED/LED), 2 (ping-pong LoRa) e 5 (BLE v1) **passaram**. O agente do PC v1 falhou na prática, e o **fluxo novo (botão desbloqueia o PC, pico do RSSI bloqueia ao afastar)** está escrito e enviado ao Git, mas **nunca foi testado**.
+
+**Próximos passos, em ordem:**
+1. **Testar o agente v2 no PC do Flávio** (precisa das 2 pessoas/PCs e da Heltec com antena): gravar `firmware/testes/05_ble_anuncio`, `pip install bleak`, `python pc-agent/agente_bloqueio.py`, seguir o roteiro de `docs/FLUXO_BLE_E_BLOQUEIO.md` seção 8 (apertar perto, apertar longe, **tapar o crachá**, afastar). Anotar resultados e tempos no diário (tabela de metas) e ajustar os limiares (`--liberar`, `--manter`; com o crachá no corpo o sinal cai 5–10 dB). Se o bloqueio demorar mais de 10 s: `--janela 4 --seg-ausente 3 --aviso 3`.
+2. **Medir RSSI com o crachá no corpo**, no corredor e atrás de parede (`python pc-agent/teste_ble_rssi.py`) e registrar na tabela do diário.
+3. **Testes 6 e 7 (caminho até o banco):** gravar `06_gateway_mqtt` numa Heltec e `07_cracha_prg_lora` na outra; copiar `config.example.h` para `config.h` (Wi-Fi 2,4 GHz + IP do broker); instalar a biblioteca **PubSubClient**. **Decidir antes onde roda o broker** (o notebook do Pedro não tem administrador para liberar a porta 1883; o Node-RED precisa do `cloud/.env`, que não vai pelo Git). Ver P17 no diário.
+4. **Avisar o professor** da mudança de requisito (botão desbloqueia; PC não registra ponto).
+5. **Peças que faltam chegar:** bateria CR2032 (Mercado Livre), botão, buzzer. Quando chegarem: Teste 3 (persistência do DS1302) e Teste 4 (botão + LED + buzzer); depois trocar o PRG pelo botão real (`PINO_BOTAO` no teste 05).
+6. **Prazos:** layout da PCI até **14/11** (precisa da pinagem confirmada), PCI montada até **23/11**, apresentação **04/12/2026**. A PCI (3 pts) é o maior risco: começar o KiCad assim que a pinagem fechar.
+7. **Pontas soltas:** registrar distância/RSSI de alcance do LoRa (teste 2); print do T10 sem senha; divisão de tarefas A/B/C/D; criar as pastas do Git (`firmware/cracha`, `firmware/gateway`, `hardware/`, `enclosure/`); antes de 04/12 reativar o Supabase, exportar o histórico e ensaiar com o hotspot em 2,4 GHz.
+
+**Regras que valem sempre:** nunca ligar a Heltec sem antena · `pull` + commit + `push` a cada passo · atualizar o diário (problemas incluídos) · não mudar tabelas sem perguntar.
+
+---
+
 ## 1. O que está PRONTO e verificado
 
 | Parte | Estado | Onde |

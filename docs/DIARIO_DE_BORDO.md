@@ -16,6 +16,7 @@
 | 11/11/2026 | **Começo da parte física** no PC do Flávio (admin + Arduino IDE; 2 Heltec V3, 2 antenas, 2 cabos). Plano de testes em protoboard; Teste 1 escrito. Cronograma já atrasado (protoboard era 09/11). |
 | 12/11/2026 | **Teste 1 (OLED + LED): passou.** **Teste 2 (ping-pong LoRa): passou** (Flávio ajustou o código para a RadioLib 8.x). Teste 3 (DS1302) escrito, **adiado: bateria CR2032 não chegou**. Foco redefinido: só **BLE crachá↔PC** e **comunicação com o banco**. **Teste 5 (BLE): passou**, com medições de RSSI. Testes 6 e 7 (gateway MQTT e crachá por PRG) escritos e **adiados para outro dia**. |
 | 12/11/2026 | **Agente v1 (bloqueio por média de RSSI) testado: dois problemas** (ver seção 2). Equipe propõe o **fluxo novo: o botão desbloqueia**. Decisões 1, 2 e 3 aprovadas. Código e documentos refeitos (agente v2, firmware 05 com contador de cliques). **Ainda não testado.** |
+| 12/11/2026 | **Fim da sessão.** Flávio saiu do laboratório; tudo enviado ao Git (`b2964ab` e seguintes). Próximo encontro: testar o agente v2 (ver `PENDENCIAS.md`, seção 0). |
 
 ## 2. Problemas encontrados e como foram resolvidos (alimenta o "registro de erros" do relatório)
 
