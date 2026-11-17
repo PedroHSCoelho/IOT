@@ -21,6 +21,7 @@
 | 17/11/2026 | **Teste do agente v2 (PC do Flávio, Heltec com o teste 05):** clique perto liberou em **< 1 s** (RSSI −58 dBm); clique longe foi ignorado. A equipe redefiniu o ciclo: 1º clique libera, **2º clique arma** (crachá fora do porta-crachá), só então afastar bloqueia; 3º clique em diante repete o ciclo. Agente v2.1 escrito (estado ARMADO), a testar. Depois a equipe precisou que **o clique que coloca o crachá nunca seja ignorado e não use BLE** (o porta-crachá está sempre perto): os cliques viram um interruptor, e o BLE só vigia a distância em ARMADO; `--liberar` removido. |
 | 17/11/2026 | **Agente v2.1 testado: deu certo** (clique = interruptor). Em seguida a equipe redefiniu de novo a lógica (**agente v3**): modo **automático** (chegar perto desbloqueia, sair de perto bloqueia) e modo **fixo** (1º clique mantém liberado até o 2º clique, sem medir BLE); cada clique alterna FIXO ↔ AUTOMÁTICO; `--seg-ausente` de 10 s para 5 s. Escrito, a testar. |
 | 17/11/2026 | **Bloqueio demorava demais ao afastar** (≈ 8+5+5 s no pior caso): padrões mudados para `--janela 3 --seg-ausente 3 --aviso 3` (≈ 9 s). Risco: janela curta pode bloquear ao tapar o crachá; **a medir**. |
+| 17/11/2026 | **Agente v3 com `--janela 3 --seg-ausente 3 --aviso 3` testado: passou** (desbloqueio ao chegar perto, bloqueio ao afastar, modo fixo pelo clique e tapar o crachá sem bloquear). Tempos exatos não foram anotados; **medir com cronômetro** na tabela de metas. |
 
 ## 2. Problemas encontrados e como foram resolvidos (alimenta o "registro de erros" do relatório)
 
@@ -80,7 +81,7 @@
 | Agente v1 (média + tela própria) | 12/11 | ❌ reprovado na prática | P13 e P14 → fluxo novo |
 | Agente v2: clique perto libera / clique longe ignorado | 17/11 | ✅ passou | < 1 s, −58 dBm |
 | Agente v2.1 (clique = interruptor; 2º clique arma; longe bloqueia) | 17/11 | ✅ passou | superado pela v3 |
-| Agente v3 (automático por sinal + modo fixo por clique) | — | 🔲 a testar | pode reabrir P13 (tapar o crachá); histerese −60/−70 | `docs/FLUXO_BLE_E_BLOQUEIO.md` |
+| Agente v3 (automático por sinal + modo fixo por clique) | 17/11 | ✅ passou | janela 3 s / ausente 3 s / aviso 3 s; tapar o crachá não bloqueou | `docs/FLUXO_BLE_E_BLOQUEIO.md` |
 | 6 — gateway MQTT; 7 — crachá por PRG | — | 🔲 adiados | Código escrito |
 
 ### Medições de RSSI (crachá sobre a mesa, sem corpo, 12/11/2026)
