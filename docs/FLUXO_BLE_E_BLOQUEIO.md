@@ -25,25 +25,22 @@ Dois caminhos independentes saem do mesmo clique:
 2. Aperta o botão do crachá. O crachá passa a anunciar mais rápido e muda um contador no anúncio.
 3. O PC vê o contador mudar e mede o RSSI daquele pacote. Se for maior que `--liberar` (−60 dBm), **libera**.
    Se for fraco, mostra "Clique ignorado: crachá longe" e continua bloqueado.
-4. Com o PC liberado, o agente **monitora**. Se o melhor RSSI dos últimos 8 s ficar abaixo de −70 dBm por 10 s
-   seguidos (ou o crachá sumir), aparece o aviso **"Crachá não detectado. Bloqueando em 5 s"**.
-5. Se o sinal voltar (ou um clique forte chegar) durante o aviso, ele some. Se não, o PC **bloqueia**.
-6. Apertar o botão com o PC já liberado **não faz nada no PC** (só registra o ponto pelo LoRa).
+4. Com o PC **LIBERADO** (crachá no porta-crachá), o agente **não vigia a distância**: afastar-se não bloqueia.
+5. **2º clique** = crachá tirado do porta-crachá. O agente passa a **ARMADO** (vale qualquer RSSI) e começa a vigiar:
+   se o melhor RSSI dos últimos 8 s ficar abaixo de −70 dBm por 10 s seguidos (ou o crachá sumir), aparece o aviso
+   **"Crachá não detectado. Bloqueando em 5 s"** e depois o PC **bloqueia**. Perto, ele continua liberado.
+6. **3º clique em diante** (loop): com a tela bloqueada, clique perto libera e clique longe é ignorado. Armado e
+   ainda desbloqueado, clique perto volta a LIBERADO (crachá recolocado) e clique longe é ignorado.
+7. Decisão de 17/11/2026 (equipe): sem o 2º clique, afastar **não** bloqueia (crachá no porta-crachá = presente).
+   Isso substitui a regra de 12/11 ("2º clique ignorado; bloqueio só por afastamento"). O ponto continua indo por LoRa.
 
-## 3. Máquina de estados do agente
+## 3. Máquina de estados do agente (v2.1, 17/11/2026)
 
 ```text
-          (início, a menos de --iniciar-liberado)
-                         │
-                         ▼
-                  ┌─────────────┐   clique com RSSI > --liberar   ┌─────────────┐
-                  │  BLOQUEADO  │ ───────────────────────────────►│  LIBERADO   │
-                  │ (tela cheia)│                                  │ (monitora)  │
-                  └─────────────┘◄─────────────────────────────── └─────────────┘
-                         ▲        pico RSSI < --manter por                │
-                         │        --seg-ausente + aviso de --aviso s      │
-                         │                                                │
-              clique fraco: só mostra mensagem                  sinal volta: cancela o aviso
+ BLOQUEADO --clique perto (RSSI > --liberar)--> LIBERADO   (clique longe: ignorado)
+ LIBERADO  --2º clique (qualquer RSSI)--------> ARMADO     (sem clique, afastar não bloqueia)
+ ARMADO    --pico < --manter por --seg-ausente + aviso de --aviso s--> BLOQUEADO
+ ARMADO    --clique perto--> LIBERADO   (clique longe: ignorado)
 ```
 
 ## 4. O anúncio BLE do crachá (firmware `firmware/testes/05_ble_anuncio`)

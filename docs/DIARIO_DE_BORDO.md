@@ -18,6 +18,7 @@
 | 12/11/2026 | **Agente v1 (bloqueio por média de RSSI) testado: dois problemas** (ver seção 2). Equipe propõe o **fluxo novo: o botão desbloqueia**. Decisões 1, 2 e 3 aprovadas. Código e documentos refeitos (agente v2, firmware 05 com contador de cliques). **Ainda não testado.** |
 | 12/11/2026 | **Fim da sessão.** Flávio saiu do laboratório; tudo enviado ao Git (`b2964ab` e seguintes). Próximo encontro: testar o agente v2 (ver `PENDENCIAS.md`, seção 0). |
 | 17/11/2026 | **Preparação sem hardware:** pinagem proposta para a PCI (`hardware/PINAGEM.md`), pastas do Git criadas (`firmware/cracha`, `firmware/gateway`, `hardware`, `enclosure`) e caminho para o broker sem administrador (P17). |
+| 17/11/2026 | **Teste do agente v2 (PC do Flávio, Heltec com o teste 05):** clique perto liberou em **< 1 s** (RSSI −58 dBm); clique longe foi ignorado. A equipe redefiniu o ciclo: 1º clique libera, **2º clique arma** (crachá fora do porta-crachá), só então afastar bloqueia; 3º clique em diante repete o ciclo. Agente v2.1 escrito (estado ARMADO), a testar. |
 
 ## 2. Problemas encontrados e como foram resolvidos (alimenta o "registro de erros" do relatório)
 
@@ -45,6 +46,7 @@
 
 | Data | Decisão | Por quê / alternativas |
 | --- | --- | --- |
+| 17/11 | **2º clique arma o bloqueio; sem ele, afastar não bloqueia; 3º clique em diante repete o ciclo** | Simula crachá no/fora do porta-crachá e casa com CHEGADA/SAÍDA; substitui a regra de 12/11 (2º clique ignorado). Risco aceito: PC aberto se a pessoa sair sem o 2º clique |
 | 17/11 | **Proposta:** botão no GPIO 4, buzzer no GPIO 5, LED externo opcional no GPIO 6 | Pinos livres, sem função de boot, longe de LoRa/OLED/DS1302; **a confirmar na protoboard** (Teste 4) |
 | 17/11 | **Proposta:** broker no PC do Flávio, Node-RED no notebook do Pedro (`MQTT_HOST`) | Só o PC com administrador precisa liberar a 1883; alternativa: tudo no PC do Flávio, copiando o `cloud/.env` à mão (nunca pelo Git) |
 | 03/11 | Banco no **Supabase**, broker **aedes** | Sem Docker nem administrador; protocolo MQTT idêntico ao Mosquitto |
@@ -73,7 +75,8 @@
 | 4 — botão + LED + buzzer | — | ⏸ adiado | Peças não chegaram |
 | 5 — BLE (anúncio + RSSI no PC) | 12/11 | ✅ passou (v1) | O PC enxergou o crachá; medições abaixo. **v2 (contador de cliques) reescrita, não testada** |
 | Agente v1 (média + tela própria) | 12/11 | ❌ reprovado na prática | P13 e P14 → fluxo novo |
-| Agente v2 (botão libera, pico bloqueia) | — | 🔲 a testar | Ver `docs/FLUXO_BLE_E_BLOQUEIO.md`, seção 8 |
+| Agente v2: clique perto libera / clique longe ignorado | 17/11 | ✅ passou | < 1 s, −58 dBm |
+| Agente v2.1 (2º clique arma, longe bloqueia; loop) | — | 🔲 a testar | `docs/FLUXO_BLE_E_BLOQUEIO.md` |
 | 6 — gateway MQTT; 7 — crachá por PRG | — | 🔲 adiados | Código escrito |
 
 ### Medições de RSSI (crachá sobre a mesa, sem corpo, 12/11/2026)
@@ -93,7 +96,7 @@ Queda ≈ 7 dB a cada dobra de distância; extrapolando, −65 dBm ≈ 4 m e −
 
 | Meta | Valor pedido | Medido |
 | --- | --- | --- |
-| Botão → desbloqueio do PC (novo) | ≤ 2 s | — |
+| Botão → desbloqueio do PC (novo) | ≤ 2 s | < 1 s (17/11, a 1 m, RSSI −58) |
 | Afastar → bloqueio | ≤ 10 s | — |
 | Botão → bipe | ≤ 2 s | — |
 | Evento → painel | ≤ 5 s | — |

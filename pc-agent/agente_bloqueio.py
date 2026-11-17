@@ -8,8 +8,12 @@ Ideia (12/11/2026), como um cartao passado no leitor:
   3) Com o PC liberado comeca o MONITORAMENTO: se o cracha se afasta, o PC avisa ("bloqueando em 5 s")
      e bloqueia. Para nao bloquear quando alguem tapa o cracha com o corpo/mao, usamos o MELHOR RSSI
      dos ultimos segundos (o pico), e so agimos se ficar fraco por bastante tempo.
-  4) Apertar o botao com o PC ja liberado NAO faz nada no PC (o ponto e registrado por outro caminho:
-     LoRa -> gateway -> banco). O PC nunca registra ponto: so bloqueia/libera.
+  4) (17/11/2026) Ciclo por estados, como um cracha no porta-cracha:
+       BLOQUEADO --clique perto--> LIBERADO (cracha no porta-cracha; afastar NAO bloqueia)
+       LIBERADO  --2o clique-----> ARMADO   (cracha fora do porta-cracha; ficar longe bloqueia)
+       ARMADO    --pico fraco por --seg-ausente + aviso--> BLOQUEADO
+       ARMADO    --clique perto--> LIBERADO (voltou ao porta-cracha); clique longe e ignorado
+     O ponto e registrado por outro caminho (LoRa -> gateway -> banco). O PC nunca registra ponto.
 
 Por que assim? No teste da versao 1 (media + limiares) o PC desbloqueava quando o usuario tapava o cracha
 e demorava para liberar por causa da media. Veja docs/FLUXO_BLE_E_BLOQUEIO.md e docs/DIARIO_DE_BORDO.md.
@@ -157,18 +161,20 @@ class Agente:
         c = self.clique
         if not c or c["feito"]:
             return
-        if c["melhor"] > ARGS.liberar:
+        if self.estado == "LIBERADO":
+            # 2o clique (crachá tirado do porta-crachá): ARMA a vigilância, valha o RSSI que valer.
             c["feito"] = True
-            if self.estado == "BLOQUEADO":
-                self.liberar(c["melhor"])
-            else:
-                self.desde_longe = None       # clique forte com o PC liberado: prova de presenca, cancela aviso
-                self.fechar_aviso()
+            self.armar(c["melhor"])
+        elif c["melhor"] > ARGS.liberar:
+            c["feito"] = True
+            self.liberar(c["melhor"])   # BLOQUEADO: libera; ARMADO: crachá recolocado perto = volta a LIBERADO
         elif agora - c["t"] >= JANELA_CLIQUE:
             c["feito"] = True
             if self.estado == "BLOQUEADO":
                 self.msg = f"Clique ignorado: crachá longe ({c['melhor']:.0f} dBm). Aproxime e aperte de novo."
                 print(f"\n>>> {self.msg}")
+            else:
+                print(f"\n>>> clique ignorado (ARMADO): crachá longe ({c['melhor']:.0f} dBm)")
 
     # ---------- monitoramento (so com o PC liberado) ----------
     def monitorar(self, agora):
@@ -201,8 +207,8 @@ class Agente:
         agora = time.time()
         self.processar_pacotes()
         self.decidir_clique(agora)
-        if self.estado == "LIBERADO":
-            self.monitorar(agora)
+        if self.estado == "ARMADO":
+            self.monitorar(agora)      # só vigia a distância depois do 2o clique
         else:
             while self.hist and agora - self.hist[0][0] > ARGS.janela:
                 self.hist.popleft()
@@ -247,6 +253,7 @@ class Agente:
 
     def liberar(self, rssi):
         self.estado = "LIBERADO"
+        self.fechar_aviso()
         if self.tela:
             self.tela.destroy()
             self.tela = None
@@ -256,6 +263,15 @@ class Agente:
         self.msg = ""
         self.status.publicar("liberado", rssi)
         print(f"\n>>> PC LIBERADO pelo botão (RSSI do clique {rssi:.0f} dBm)")
+
+    def armar(self, rssi):
+        """2o clique: o crachá saiu do porta-crachá. A partir daqui, ficar longe bloqueia o PC."""
+        self.estado = "ARMADO"
+        self.hist.clear()
+        self.hist.append((time.time(), rssi))
+        self.desde_longe = self.aviso_fim = None
+        self.status.publicar("armado", rssi)
+        print(f"\n>>> ARMADO pelo 2º clique (RSSI {rssi:.0f} dBm): se o crachá ficar longe, o PC bloqueia")
 
     def abrir_aviso(self):
         if self.aviso:
