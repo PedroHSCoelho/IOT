@@ -23,24 +23,24 @@ Dois caminhos independentes saem do mesmo clique:
 ## 2. Passo a passo do usuário
 1. Funcionário chega. O PC está **bloqueado** (tela cheia "BLOQUEADO").
 2. Aperta o botão do crachá. O crachá passa a anunciar mais rápido e muda um contador no anúncio.
-3. O PC vê o contador mudar e mede o RSSI daquele pacote. Se for maior que `--liberar` (−60 dBm), **libera**.
-   Se for fraco, mostra "Clique ignorado: crachá longe" e continua bloqueado.
+3. O PC vê o contador mudar e **libera na hora**: o crachá está no porta-crachá, sempre perto, então esse clique
+   **nunca é ignorado e não usa o RSSI**.
 4. Com o PC **LIBERADO** (crachá no porta-crachá), o agente **não vigia a distância**: afastar-se não bloqueia.
 5. **2º clique** = crachá tirado do porta-crachá. O agente passa a **ARMADO** (vale qualquer RSSI) e começa a vigiar:
    se o melhor RSSI dos últimos 8 s ficar abaixo de −70 dBm por 10 s seguidos (ou o crachá sumir), aparece o aviso
    **"Crachá não detectado. Bloqueando em 5 s"** e depois o PC **bloqueia**. Perto, ele continua liberado.
-6. **3º clique em diante** (loop): com a tela bloqueada, clique perto libera e clique longe é ignorado. Armado e
-   ainda desbloqueado, clique perto volta a LIBERADO (crachá recolocado) e clique longe é ignorado.
+6. **3º clique em diante** (loop): os cliques são um **interruptor**. Colocar o crachá (BLOQUEADO ou ARMADO → LIBERADO)
+   sempre libera, sem BLE. Tirar (LIBERADO → ARMADO) arma a vigilância. O BLE só é usado em ARMADO.
 7. Decisão de 17/11/2026 (equipe): sem o 2º clique, afastar **não** bloqueia (crachá no porta-crachá = presente).
    Isso substitui a regra de 12/11 ("2º clique ignorado; bloqueio só por afastamento"). O ponto continua indo por LoRa.
 
 ## 3. Máquina de estados do agente (v2.1, 17/11/2026)
 
 ```text
- BLOQUEADO --clique perto (RSSI > --liberar)--> LIBERADO   (clique longe: ignorado)
+ BLOQUEADO --clique (sem BLE, nunca ignorado)--> LIBERADO
  LIBERADO  --2º clique (qualquer RSSI)--------> ARMADO     (sem clique, afastar não bloqueia)
  ARMADO    --pico < --manter por --seg-ausente + aviso de --aviso s--> BLOQUEADO
- ARMADO    --clique perto--> LIBERADO   (clique longe: ignorado)
+ ARMADO    --clique (sem BLE)--> LIBERADO   (crachá recolocado)
 ```
 
 ## 4. O anúncio BLE do crachá (firmware `firmware/testes/05_ble_anuncio`)
@@ -62,7 +62,6 @@ Nome `UNIFESP-BADGE` + dados do fabricante (id de empresa genérico `0xFFFF`), 2
 
 | Opção | Padrão | Significado |
 | --- | --- | --- |
-| `--liberar` | −60 dBm | clique só vale se o RSSI dele for maior (≈ 2,5 m na mesa; o usuário está com a mão no crachá) |
 | `--manter` | −70 dBm | liberado: "longe" = pico da janela abaixo disto |
 | `--janela` | 8 s | janela do pico (ignora quedas rápidas por obstrução) |
 | `--seg-ausente` | 10 s | tempo "longe" seguido antes do aviso |

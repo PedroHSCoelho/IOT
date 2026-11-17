@@ -3,16 +3,16 @@
 Ideia (12/11/2026), como um cartao passado no leitor:
   1) O PC esta BLOQUEADO (tela cheia propria cobrindo tudo).
   2) O funcionario aperta o botao do cracha. O cracha avisa por Bluetooth (BLE) mudando um contador no
-     anuncio. O PC ve o contador mudar e mede o RSSI (forca do sinal) DAQUELE pacote.
-     Se esta perto (RSSI > --liberar), o PC LIBERA na hora. Sem media, sem espera.
+     anuncio. O PC ve o contador mudar e LIBERA na hora (o cracha esta no porta-cracha, sempre perto:
+     o clique de colocar nunca e ignorado e nao usa o RSSI).
   3) Com o PC liberado comeca o MONITORAMENTO: se o cracha se afasta, o PC avisa ("bloqueando em 5 s")
      e bloqueia. Para nao bloquear quando alguem tapa o cracha com o corpo/mao, usamos o MELHOR RSSI
      dos ultimos segundos (o pico), e so agimos se ficar fraco por bastante tempo.
   4) (17/11/2026) Ciclo por estados, como um cracha no porta-cracha:
-       BLOQUEADO --clique perto--> LIBERADO (cracha no porta-cracha; afastar NAO bloqueia)
+       BLOQUEADO --clique--> LIBERADO (cracha no porta-cracha; afastar NAO bloqueia)
        LIBERADO  --2o clique-----> ARMADO   (cracha fora do porta-cracha; ficar longe bloqueia)
        ARMADO    --pico fraco por --seg-ausente + aviso--> BLOQUEADO
-       ARMADO    --clique perto--> LIBERADO (voltou ao porta-cracha); clique longe e ignorado
+       ARMADO    --clique--> LIBERADO (voltou ao porta-cracha; nunca ignorado)
      O ponto e registrado por outro caminho (LoRa -> gateway -> banco). O PC nunca registra ponto.
 
 Por que assim? No teste da versao 1 (media + limiares) o PC desbloqueava quando o usuario tapava o cracha
@@ -27,8 +27,7 @@ SAIDA DE EMERGENCIA: com a tela de bloqueio aparecendo, aperte ESC para encerrar
 Instalar (uma vez):   pip install bleak        (opcional, para avisar o servidor: pip install paho-mqtt)
 Rodar:                python agente_bloqueio.py
 Desenvolver sem se trancar:   python agente_bloqueio.py --iniciar-liberado
-Ajustar:              --liberar -60  (clique valido se o RSSI do clique for MAIOR que isto)
-                      --manter -70 --janela 8 --seg-ausente 10 --aviso 5   (politica de bloqueio)
+Ajustar:              --manter -70 --janela 8 --seg-ausente 10 --aviso 5   (politica de bloqueio)
 Opcional (ainda nao testado):  --mqtt 192.168.0.10   publica o status do PC em unifesp/ponto/pc/<badge>/status
 """
 import argparse
@@ -46,7 +45,6 @@ ID_EMPRESA = 0xFFFF         # id generico usado nos dados do fabricante (ver fir
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--badge", type=int, default=101, help="numero do cracha que desbloqueia este PC")
-ap.add_argument("--liberar", type=float, default=-60, help="clique so vale se o RSSI dele for maior que isto (dBm)")
 ap.add_argument("--manter", type=float, default=-70, help="liberado: 'longe' = melhor RSSI da janela abaixo disto (dBm)")
 ap.add_argument("--janela", type=float, default=8, help="segundos considerados para o melhor RSSI (pico)")
 ap.add_argument("--seg-ausente", type=float, default=10, help="segundos 'longe' seguidos antes do aviso")
@@ -161,20 +159,13 @@ class Agente:
         c = self.clique
         if not c or c["feito"]:
             return
+        # Os cliques sao um INTERRUPTOR: um coloca o cracha no porta-cracha, o seguinte tira.
+        # Colocar = o cracha esta sempre perto, entao libera na hora, sem olhar o BLE e sem ignorar.
+        c["feito"] = True
         if self.estado == "LIBERADO":
-            # 2o clique (crachá tirado do porta-crachá): ARMA a vigilância, valha o RSSI que valer.
-            c["feito"] = True
-            self.armar(c["melhor"])
-        elif c["melhor"] > ARGS.liberar:
-            c["feito"] = True
-            self.liberar(c["melhor"])   # BLOQUEADO: libera; ARMADO: crachá recolocado perto = volta a LIBERADO
-        elif agora - c["t"] >= JANELA_CLIQUE:
-            c["feito"] = True
-            if self.estado == "BLOQUEADO":
-                self.msg = f"Clique ignorado: crachá longe ({c['melhor']:.0f} dBm). Aproxime e aperte de novo."
-                print(f"\n>>> {self.msg}")
-            else:
-                print(f"\n>>> clique ignorado (ARMADO): crachá longe ({c['melhor']:.0f} dBm)")
+            self.armar(c["melhor"])       # tirou do porta-cracha: so agora o BLE passa a vigiar a distancia
+        else:
+            self.liberar(c["melhor"])     # BLOQUEADO ou ARMADO: colocou no porta-cracha
 
     # ---------- monitoramento (so com o PC liberado) ----------
     def monitorar(self, agora):
@@ -295,7 +286,7 @@ class Agente:
 
 
 if __name__ == "__main__":
-    print(f"Agente ligado (crachá {ARGS.badge}). Clique válido > {ARGS.liberar} dBm; "
+    print(f"Agente ligado (crachá {ARGS.badge}). Todo clique que coloca o crachá libera; "
           f"bloqueia se o pico de {ARGS.janela:.0f} s ficar < {ARGS.manter} dBm por {ARGS.seg_ausente:.0f} s "
           f"(+{ARGS.aviso:.0f} s de aviso).")
     print("Ctrl+C encerra. Na tela de bloqueio, ESC encerra.\n")
