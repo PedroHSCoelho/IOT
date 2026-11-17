@@ -1,22 +1,22 @@
-"""Agente do PC (versao 2): o BOTAO do cracha desbloqueia; o afastamento bloqueia.
+"""Agente do PC (versao 3, 17/11/2026): o SINAL (BLE) controla a tela; o BOTAO "prende" o PC liberado.
 
-Ideia (12/11/2026), como um cartao passado no leitor:
-  1) O PC esta BLOQUEADO (tela cheia propria cobrindo tudo).
-  2) O funcionario aperta o botao do cracha. O cracha avisa por Bluetooth (BLE) mudando um contador no
-     anuncio. O PC ve o contador mudar e LIBERA na hora (o cracha esta no porta-cracha, sempre perto:
-     o clique de colocar nunca e ignorado e nao usa o RSSI).
-  3) Com o PC liberado comeca o MONITORAMENTO: se o cracha se afasta, o PC avisa ("bloqueando em 5 s")
-     e bloqueia. Para nao bloquear quando alguem tapa o cracha com o corpo/mao, usamos o MELHOR RSSI
-     dos ultimos segundos (o pico), e so agimos se ficar fraco por bastante tempo.
-  4) (17/11/2026) Ciclo por estados, como um cracha no porta-cracha:
-       BLOQUEADO --clique--> LIBERADO (cracha no porta-cracha; afastar NAO bloqueia)
-       LIBERADO  --2o clique-----> ARMADO   (cracha fora do porta-cracha; ficar longe bloqueia)
-       ARMADO    --pico fraco por --seg-ausente + aviso--> BLOQUEADO
-       ARMADO    --clique--> LIBERADO (voltou ao porta-cracha; nunca ignorado)
-     O ponto e registrado por outro caminho (LoRa -> gateway -> banco). O PC nunca registra ponto.
+Dois modos, como um cracha que ora esta no porta-cracha, ora esta com a pessoa:
+  AUTOMATICO (sem clique)  o sinal manda:
+       - o usuario chega perto (pico do RSSI > --liberar)  -> DESBLOQUEIA sozinho;
+       - o usuario sai de perto (pico < --manter por --seg-ausente s, + aviso de --aviso s) -> BLOQUEIA.
+  FIXO (depois de 1 clique)  cracha no porta-cracha: o PC fica DESBLOQUEADO ate o proximo clique,
+       mesmo sem sinal ou com sinal fraco (o BLE nao e medido).
+  2o clique -> volta ao AUTOMATICO (desbloqueia e bloqueia conforme o sinal).
+  Estados: BLOQUEADO, AUTO (liberado, vigiando), FIXO (liberado, sem vigiar). Todo clique alterna FIXO <-> AUTO
+  (de BLOQUEADO ou AUTO o clique vai para FIXO; de FIXO vai para AUTO).
 
-Por que assim? No teste da versao 1 (media + limiares) o PC desbloqueava quando o usuario tapava o cracha
-e demorava para liberar por causa da media. Veja docs/FLUXO_BLE_E_BLOQUEIO.md e docs/DIARIO_DE_BORDO.md.
+Para nao bloquear quando alguem tapa o cracha com a mao/corpo, usamos o MELHOR RSSI (pico) dos ultimos
+--janela segundos. Desbloquear exige sinal forte (> --liberar) e bloquear exige sinal fraco (< --manter):
+a diferenca entre os dois (histerese) evita que o PC fique "pisca-pisca" na fronteira.
+O ponto e registrado por outro caminho (LoRa -> gateway -> banco). O PC nunca registra ponto.
+
+Historico: a v1 (media de RSSI) desbloqueava ao tapar o cracha e demorava (P13/P14 do diario). A v3 volta ao
+desbloqueio automatico por proximidade a pedido da equipe, usando o pico e a histerese. A medir na pratica.
 
 ISTO E UM BLOQUEIO DE DEMONSTRACAO, nao de seguranca: o Windows nao deixa programas comuns desbloquear
 a tela de verdade, entao desenhamos uma tela propria por cima de tudo. Ctrl+Alt+Del ou outro usuario
@@ -27,7 +27,7 @@ SAIDA DE EMERGENCIA: com a tela de bloqueio aparecendo, aperte ESC para encerrar
 Instalar (uma vez):   pip install bleak        (opcional, para avisar o servidor: pip install paho-mqtt)
 Rodar:                python agente_bloqueio.py
 Desenvolver sem se trancar:   python agente_bloqueio.py --iniciar-liberado
-Ajustar:              --manter -70 --janela 8 --seg-ausente 10 --aviso 5   (politica de bloqueio)
+Ajustar:              --liberar -60 (perto) --manter -70 (longe) --janela 8 --seg-ausente 5 --aviso 5
 Opcional (ainda nao testado):  --mqtt 192.168.0.10   publica o status do PC em unifesp/ponto/pc/<badge>/status
 """
 import argparse
@@ -45,9 +45,10 @@ ID_EMPRESA = 0xFFFF         # id generico usado nos dados do fabricante (ver fir
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--badge", type=int, default=101, help="numero do cracha que desbloqueia este PC")
-ap.add_argument("--manter", type=float, default=-70, help="liberado: 'longe' = melhor RSSI da janela abaixo disto (dBm)")
+ap.add_argument("--liberar", type=float, default=-60, help="automatico: bloqueado desbloqueia quando um pacote passa disto (dBm)")
+ap.add_argument("--manter", type=float, default=-70, help="automatico liberado: 'longe' = melhor RSSI da janela abaixo disto (dBm)")
 ap.add_argument("--janela", type=float, default=8, help="segundos considerados para o melhor RSSI (pico)")
-ap.add_argument("--seg-ausente", type=float, default=10, help="segundos 'longe' seguidos antes do aviso")
+ap.add_argument("--seg-ausente", type=float, default=5, help="segundos 'longe' seguidos antes do aviso")
 ap.add_argument("--aviso", type=float, default=5, help="segundos de contagem 'bloqueando em N s' antes de bloquear")
 ap.add_argument("--iniciar-liberado", action="store_true", help="comeca liberado (util para desenvolver)")
 ap.add_argument("--mqtt", default=None, help="IP do broker MQTT (opcional): publica o status do PC")
@@ -120,7 +121,7 @@ class Agente:
         self.raiz = tk.Tk()
         self.raiz.withdraw()                  # janela principal escondida; so as telas de bloqueio/aviso aparecem
         self.status = Status()
-        self.estado = "LIBERADO"
+        self.estado = "AUTO"
         self.tela = None                      # tela cheia de bloqueio
         self.aviso = None                     # janelinha "bloqueando em N s"
         self.hist = deque()                   # (hora, rssi) dos pacotes recentes (monitoramento)
@@ -159,13 +160,11 @@ class Agente:
         c = self.clique
         if not c or c["feito"]:
             return
-        # Os cliques sao um INTERRUPTOR: um coloca o cracha no porta-cracha, o seguinte tira.
-        # Colocar = o cracha esta sempre perto, entao libera na hora, sem olhar o BLE e sem ignorar.
         c["feito"] = True
-        if self.estado == "LIBERADO":
-            self.armar(c["melhor"])       # tirou do porta-cracha: so agora o BLE passa a vigiar a distancia
+        if self.estado == "FIXO":
+            self.liberar(c["melhor"], "AUTO", "2º clique: volta ao automático")
         else:
-            self.liberar(c["melhor"])     # BLOQUEADO ou ARMADO: colocou no porta-cracha
+            self.liberar(c["melhor"], "FIXO", "clique: crachá no porta-crachá, fica liberado")
 
     # ---------- monitoramento (so com o PC liberado) ----------
     def monitorar(self, agora):
@@ -190,6 +189,11 @@ class Agente:
             elif self.aviso:
                 self.rotulo_aviso.config(text=f"Crachá não detectado. Bloqueando em {restante:.0f} s")
 
+    def checar_proximidade(self, agora):
+        """Bloqueado em modo automático: um pacote forte e recente (> --liberar) desbloqueia sozinho."""
+        if self.ultimo_pacote and agora - self.ultimo_pacote < 1.0 and self.ultimo_rssi > ARGS.liberar:
+            self.liberar(self.ultimo_rssi, "AUTO", "usuário chegou perto")
+
     # ---------- ciclo principal (a cada 100 ms) ----------
     def ciclo(self):
         if parar.is_set():
@@ -198,8 +202,12 @@ class Agente:
         agora = time.time()
         self.processar_pacotes()
         self.decidir_clique(agora)
-        if self.estado == "ARMADO":
-            self.monitorar(agora)      # só vigia a distância depois do 2o clique
+        if self.estado == "AUTO":
+            self.monitorar(agora)      # automático: o pico do sinal decide bloquear
+        elif self.estado == "BLOQUEADO":
+            self.checar_proximidade(agora)
+            while self.hist and agora - self.hist[0][0] > ARGS.janela:
+                self.hist.popleft()
         else:
             while self.hist and agora - self.hist[0][0] > ARGS.janela:
                 self.hist.popleft()
@@ -222,13 +230,13 @@ class Agente:
         self.fechar_aviso()
         self.estado = "BLOQUEADO"
         self.aviso_fim = self.desde_longe = None
-        self.msg = "Aproxime o crachá e aperte o botão"
+        self.msg = "Aproxime-se do PC com o crachá (ou aperte o botão)"
         t = tk.Toplevel(self.raiz)
         t.configure(bg="#0b1d3a")
         t.attributes("-fullscreen", True)
         t.attributes("-topmost", True)
         tk.Label(t, text="BLOQUEADO", font=("Segoe UI", 64, "bold"), fg="white", bg="#0b1d3a").pack(expand=True, pady=(120, 0))
-        tk.Label(t, text="Aperte o botão do crachá para desbloquear", font=("Segoe UI", 28),
+        tk.Label(t, text="Chegue perto com o crachá ou aperte o botão para desbloquear", font=("Segoe UI", 28),
                  fg="#9fb4d6", bg="#0b1d3a").pack()
         self.rotulo_msg = tk.Label(t, text=self.msg, font=("Segoe UI", 18), fg="#ffd166", bg="#0b1d3a")
         self.rotulo_msg.pack(pady=(30, 0))
@@ -242,27 +250,19 @@ class Agente:
         self.status.publicar("bloqueado")
         print(f"\n>>> PC BLOQUEADO ({motivo})")
 
-    def liberar(self, rssi):
-        self.estado = "LIBERADO"
+    def liberar(self, rssi, novo_estado, motivo):
+        """Libera a tela. novo_estado: 'AUTO' (vigia o sinal) ou 'FIXO' (fica liberado ate o proximo clique)."""
+        self.estado = novo_estado
         self.fechar_aviso()
         if self.tela:
             self.tela.destroy()
             self.tela = None
         self.hist.clear()
-        self.hist.append((time.time(), rssi))  # o pacote do clique ja conta como "presente"
+        self.hist.append((time.time(), rssi))  # o pacote atual conta como "presente"
         self.desde_longe = self.aviso_fim = None
         self.msg = ""
-        self.status.publicar("liberado", rssi)
-        print(f"\n>>> PC LIBERADO pelo botão (RSSI do clique {rssi:.0f} dBm)")
-
-    def armar(self, rssi):
-        """2o clique: o crachá saiu do porta-crachá. A partir daqui, ficar longe bloqueia o PC."""
-        self.estado = "ARMADO"
-        self.hist.clear()
-        self.hist.append((time.time(), rssi))
-        self.desde_longe = self.aviso_fim = None
-        self.status.publicar("armado", rssi)
-        print(f"\n>>> ARMADO pelo 2º clique (RSSI {rssi:.0f} dBm): se o crachá ficar longe, o PC bloqueia")
+        self.status.publicar(novo_estado.lower(), rssi)
+        print(f"\n>>> PC LIBERADO, modo {novo_estado} ({motivo}; RSSI {rssi:.0f} dBm)")
 
     def abrir_aviso(self):
         if self.aviso:
@@ -286,7 +286,7 @@ class Agente:
 
 
 if __name__ == "__main__":
-    print(f"Agente ligado (crachá {ARGS.badge}). Todo clique que coloca o crachá libera; "
+    print(f"Agente ligado (crachá {ARGS.badge}). Automático: desbloqueia se o sinal > {ARGS.liberar} dBm; "
           f"bloqueia se o pico de {ARGS.janela:.0f} s ficar < {ARGS.manter} dBm por {ARGS.seg_ausente:.0f} s "
           f"(+{ARGS.aviso:.0f} s de aviso).")
     print("Ctrl+C encerra. Na tela de bloqueio, ESC encerra.\n")

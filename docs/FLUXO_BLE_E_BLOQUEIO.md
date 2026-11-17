@@ -1,11 +1,11 @@
-# Fluxo do botão, do BLE e do bloqueio do PC (versão 2, 12/11/2026)
+# Fluxo do botão, do BLE e do bloqueio do PC (versão 3, 17/11/2026)
 
 > Este documento descreve o esquema **novo**, que substituiu o "bloqueio por média de RSSI" (versão 1).
 > O porquê da mudança está em `docs/DIARIO_DE_BORDO.md` (seção "Problemas").
 
 ## 1. A ideia em uma frase
-O botão do crachá é o **"cartão passado no leitor"**: apertar o botão desbloqueia o PC se o crachá estiver
-perto; depois disso, o PC só bloqueia de novo se o crachá se afastar.
+O **sinal BLE** controla a tela sozinho (chegou perto → desbloqueia; saiu → bloqueia). O **botão** "prende" o PC
+liberado enquanto o crachá está no porta-crachá, e o próximo clique devolve o controle ao sinal.
 
 Dois caminhos independentes saem do mesmo clique:
 
@@ -20,27 +20,27 @@ Dois caminhos independentes saem do mesmo clique:
 - **Registrar o ponto** (CHEGADA/SAÍDA) = LoRa → gateway → banco (como já estava planejado).
 - O PC **nunca registra ponto**. Ele só libera e bloqueia a tela.
 
-## 2. Passo a passo do usuário
-1. Funcionário chega. O PC está **bloqueado** (tela cheia "BLOQUEADO").
-2. Aperta o botão do crachá. O crachá passa a anunciar mais rápido e muda um contador no anúncio.
-3. O PC vê o contador mudar e **libera na hora**: o crachá está no porta-crachá, sempre perto, então esse clique
-   **nunca é ignorado e não usa o RSSI**.
-4. Com o PC **LIBERADO** (crachá no porta-crachá), o agente **não vigia a distância**: afastar-se não bloqueia.
-5. **2º clique** = crachá tirado do porta-crachá. O agente passa a **ARMADO** (vale qualquer RSSI) e começa a vigiar:
-   se o melhor RSSI dos últimos 8 s ficar abaixo de −70 dBm por 10 s seguidos (ou o crachá sumir), aparece o aviso
-   **"Crachá não detectado. Bloqueando em 5 s"** e depois o PC **bloqueia**. Perto, ele continua liberado.
-6. **3º clique em diante** (loop): os cliques são um **interruptor**. Colocar o crachá (BLOQUEADO ou ARMADO → LIBERADO)
-   sempre libera, sem BLE. Tirar (LIBERADO → ARMADO) arma a vigilância. O BLE só é usado em ARMADO.
-7. Decisão de 17/11/2026 (equipe): sem o 2º clique, afastar **não** bloqueia (crachá no porta-crachá = presente).
-   Isso substitui a regra de 12/11 ("2º clique ignorado; bloqueio só por afastamento"). O ponto continua indo por LoRa.
+## 2. Passo a passo do usuário (versão 3, decisão de 17/11/2026)
+1. **Modo automático (sem clicar):** o PC está bloqueado. O usuário **chega perto** (pico do RSSI > `--liberar`,
+   −60 dBm) e o PC **desbloqueia sozinho**. Se **sai de perto** (pico < `--manter`, −70 dBm, por `--seg-ausente` = 5 s),
+   aparece o aviso **"Bloqueando em 5 s"** e o PC **bloqueia**.
+2. **1º clique** = crachá colocado no porta-crachá. O PC **fica desbloqueado até o 2º clique**, mesmo longe, sem
+   sinal ou com sinal fraco (o BLE não é medido). O clique nunca é ignorado.
+3. **2º clique** = crachá tirado do porta-crachá. Volta ao **modo automático**: desbloqueia e bloqueia conforme o sinal.
+4. O 3º clique repete o 1º, e assim por diante: **cada clique alterna FIXO ↔ AUTOMÁTICO**.
+5. O ponto (CHEGADA/SAÍDA) continua indo pelo LoRa; o PC nunca registra ponto.
 
-## 3. Máquina de estados do agente (v2.1, 17/11/2026)
+Isto substitui as regras de 12/11 e do começo de 17/11 ("o botão desbloqueia", "2º clique arma"). **Aviso:** o
+desbloqueio automático por proximidade foi o que falhou na v1 (P13/P14); a v3 usa o **pico** e a **histerese**
+(−60 para desbloquear, −70 para bloquear) para reduzir o problema. **A validar na prática.**
+
+## 3. Máquina de estados do agente (v3)
 
 ```text
- BLOQUEADO --clique (sem BLE, nunca ignorado)--> LIBERADO
- LIBERADO  --2º clique (qualquer RSSI)--------> ARMADO     (sem clique, afastar não bloqueia)
- ARMADO    --pico < --manter por --seg-ausente + aviso de --aviso s--> BLOQUEADO
- ARMADO    --clique (sem BLE)--> LIBERADO   (crachá recolocado)
+ BLOQUEADO --pacote > --liberar (chegou perto)--> AUTO
+ BLOQUEADO --clique--> FIXO              AUTO --clique--> FIXO
+ AUTO --pico < --manter por --seg-ausente + aviso--> BLOQUEADO
+ FIXO --clique--> AUTO (sem vigiar nem bloquear enquanto estiver em FIXO)
 ```
 
 ## 4. O anúncio BLE do crachá (firmware `firmware/testes/05_ble_anuncio`)
@@ -62,16 +62,17 @@ Nome `UNIFESP-BADGE` + dados do fabricante (id de empresa genérico `0xFFFF`), 2
 
 | Opção | Padrão | Significado |
 | --- | --- | --- |
-| `--manter` | −70 dBm | liberado: "longe" = pico da janela abaixo disto |
+| `--liberar` | −60 dBm | automático: bloqueado desbloqueia quando chega um pacote mais forte que isto |
+| `--manter` | −70 dBm | automático liberado: "longe" = pico da janela abaixo disto |
 | `--janela` | 8 s | janela do pico (ignora quedas rápidas por obstrução) |
-| `--seg-ausente` | 10 s | tempo "longe" seguido antes do aviso |
+| `--seg-ausente` | 5 s | tempo "longe" seguido antes do aviso |
 | `--aviso` | 5 s | contagem regressiva antes de bloquear |
 | `--iniciar-liberado` | desligado | começa liberado (para desenvolver sem se trancar) |
 | `--mqtt IP` | desligado | publica `liberado`/`bloqueado` em `unifesp/ponto/pc/<badge>/status` (só renova o `ultimo_contato` do PC) |
 
 > **Atenção à meta "afastar → bloqueio ≤ 10 s" do PDF:** com os padrões acima o bloqueio leva até
-> ≈ 8 s (janela) + 10 s + 5 s. É a política aprovada em 12/11/2026 (prioriza não bloquear por obstrução).
-> Para encurtar: `--janela 4 --seg-ausente 3 --aviso 3` (≈ 10 s). **Medir e registrar** no diário.
+> ≈ 8 s (janela) + 5 s + 5 s (aviso). É a política aprovada em 12/11/2026 (prioriza não bloquear por obstrução).
+> Para encurtar: `--janela 3 --seg-ausente 3 --aviso 3` (≈ 9 s). **Medir e registrar** no diário.
 
 ## 6. Relação com o banco (nada muda nas tabelas)
 - A origem `ble` (`PRESENTE` = CHEGADA, `AUSENTE` = SAÍDA, regra R3) **continua existindo** no banco e no fluxo,
@@ -92,9 +93,9 @@ Nome `UNIFESP-BADGE` + dados do fabricante (id de empresa genérico `0xFFFF`), 2
 ## 8. Como testar (sem rede, sem banco)
 1. Heltec com `firmware/testes/05_ble_anuncio` gravado (antena conectada), ligada na USB.
 2. No PC: `pip install bleak` e `python pc-agent/agente_bloqueio.py` (tela bloqueia; ESC sai).
-3. Aperte PRG (1º clique): deve liberar em < 1 s, **mesmo com o crachá longe** (clique de colocar nunca é ignorado).
-4. Com o PC liberado, afaste o crachá **sem clicar**: **não** deve bloquear (nem após 20 s).
-5. Aperte PRG de novo (2º clique): o terminal mostra `ARMADO`. Afaste o crachá (outra sala): aviso → bloqueio.
-   Cronometre. Perto, **tape o crachá com a mão/corpo**: **não** deve bloquear de imediato (pico da janela).
-5b. Com o PC bloqueado ou armado, aperte PRG (3º clique): libera de novo; o ciclo se repete.
-6. Para só ver números: `python pc-agent/teste_ble_rssi.py`.
+3. **Automático:** com a tela bloqueada, **aproxime** o crachá (< 1 m): deve desbloquear sozinho. Anote o tempo.
+4. **Afastar sem clicar** (outra sala): aviso → bloqueio. Cronometre (meta ≤ 10 s). Aproxime de novo: desbloqueia.
+5. **1º clique** (PRG): modo FIXO. Afaste o crachá por mais de 20 s: **não** deve bloquear.
+6. **2º clique**: volta ao automático. Afaste: aviso → bloqueio. Aproxime: desbloqueia.
+7. **Tapar o crachá** com a mão/corpo, perto, no modo automático: não deve bloquear de imediato nem ficar piscando.
+8. Para só ver números: `python pc-agent/teste_ble_rssi.py`.
