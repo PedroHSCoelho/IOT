@@ -22,7 +22,7 @@
 | DS1302 | DAT (I/O) | 41 | idem | |
 | DS1302 | RST (CE) | 42 | idem | |
 | DS1302 | VCC1 / VCC2 / GND | 3,3 V / bateria CR2032 / GND | | CR2032 ainda não chegou |
-| Botão de ponto | um lado | **4** | **proposto** | `INPUT_PULLUP`; o outro lado vai ao GND; debounce de 50 ms no software |
+| Botão de ponto | um lado | **4** | **em teste na protoboard (17/11/2026, firmware 05)** | `INPUT_PULLUP`; o outro lado vai ao GND; debounce de 50 ms no software |
 | Buzzer | sinal | **5** | **proposto** | Se for ativo: GPIO → resistor 1 kΩ → base de NPN (2N2222/BC547), buzzer entre 3,3 V e coletor, diodo opcional; se passivo, usar `tone()`. Confirmar o tipo comprado |
 | LED de status externo (opcional) | ânodo | 6 | **proposto**, opcional | Resistor de 330 Ω em série; o LED branco da placa (GPIO 35) já cumpre o papel |
 

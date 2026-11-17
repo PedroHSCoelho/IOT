@@ -30,6 +30,7 @@ const uint16_t ID_CRACHA = 101;           // o 101 e o cracha da demo
 const char* NOME_BLE = "UNIFESP-BADGE";   // o PC procura por este prefixo
 
 const int PINO_BOTAO = 0;                 // PRG da placa (LOW = apertado)
+const int PINO_BOTAO_EXT = 4;             // push button externo: um lado no GPIO 4, o outro no GND (17/11/2026)
 const int PINO_VEXT = 36;                 // energia do OLED (LOW = ligado)
 const int PINO_LED  = 35;
 
@@ -102,6 +103,7 @@ void setup() {
   pinMode(PINO_VEXT, OUTPUT); digitalWrite(PINO_VEXT, LOW); delay(100);
   pinMode(PINO_LED, OUTPUT);
   pinMode(PINO_BOTAO, INPUT_PULLUP);
+  pinMode(PINO_BOTAO_EXT, INPUT_PULLUP);   // resistor interno puxa para 3,3 V; apertar liga ao GND (LOW)
   tela.begin();
 
   idBoot = esp_random() & 0xFF;
@@ -113,7 +115,8 @@ void setup() {
 
 void loop() {
   // Botao com debounce de 50 ms: so vale quando o estado fica estavel por 50 ms
-  bool lido = (digitalRead(PINO_BOTAO) == LOW);
+  // Vale o PRG da placa OU o botao externo (qualquer um dos dois e um clique)
+  bool lido = (digitalRead(PINO_BOTAO) == LOW) || (digitalRead(PINO_BOTAO_EXT) == LOW);
   if (lido != ultimoLido) { ultimoLido = lido; ultimaMudanca = millis(); }
   if (millis() - ultimaMudanca > 50 && lido != estavaApertado) {
     estavaApertado = lido;
