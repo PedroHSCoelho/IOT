@@ -23,6 +23,7 @@
 | 17/11/2026 | **Bloqueio demorava demais ao afastar** (≈ 8+5+5 s no pior caso): padrões mudados para `--janela 3 --seg-ausente 3 --aviso 3` (≈ 9 s). Risco: janela curta pode bloquear ao tapar o crachá; **a medir**. |
 | 17/11/2026 | **Agente v3 com `--janela 3 --seg-ausente 3 --aviso 3` testado: passou** (desbloqueio ao chegar perto, bloqueio ao afastar, modo fixo pelo clique e tapar o crachá sem bloquear). Tempos exatos não foram anotados; **medir com cronômetro** na tabela de metas. |
 | 17/11/2026 | **Nova arquitetura de teste (2 placas):** Heltec 1 = **crachá** (só anuncia o sinal; botão sem efeito), Heltec 2 = **recipiente** com o push button no GPIO 4 (conta os cliques; depois vira a parte LoRa do recipiente). O agente passou a ouvir os dois rádios BLE (`UNIFESP-BADGE` #101 e `UNIFESP-HOLDER` #201). Escrito, a testar. |
+| 17/11/2026 | **Sinal de clique:** o recipiente mostra "CLIQUE! número N" no OLED por 1,2 s (e acende o LED); o PC mostra um aviso verde por 2 s e toca um bipe. Também: `__pycache__` tinha entrado no Git por engano; removido e ignorado. |
 
 ## 2. Problemas encontrados e como foram resolvidos (alimenta o "registro de erros" do relatório)
 

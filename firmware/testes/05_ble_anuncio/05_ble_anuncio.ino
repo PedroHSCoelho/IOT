@@ -58,10 +58,19 @@ bool rapido = false;
 unsigned long fimRapido = 0;
 
 bool ultimoLido = false, estavaApertado = false;
+unsigned long fimAviso = 0;               // ate quando o OLED mostra "CLIQUE!" (feedback visual do clique)
 unsigned long ultimaMudanca = 0;
 
 void desenhar() {
   tela.clearBuffer();
+  if (millis() < fimAviso) {                // acabou de clicar: tela grande de confirmacao
+    tela.setFont(u8g2_font_ncenB14_tr);
+    tela.drawStr(8, 30, "CLIQUE!");
+    tela.setFont(u8g2_font_6x10_tr);
+    tela.drawStr(8, 52, ("numero " + String(cliques)).c_str());
+    tela.sendBuffer();
+    return;
+  }
   tela.setFont(u8g2_font_ncenB10_tr);
   tela.drawStr(0, 14, SOU_RECIPIENTE ? "RECIPIENTE" : "CRACHA");
   tela.setFont(u8g2_font_6x10_tr);
@@ -99,6 +108,7 @@ void aoClicar() {
   fimRapido = millis() + DURACAO_RAPIDO_MS;
   anunciar(INTERVALO_RAPIDO);                         // contador novo + anuncio rapido
   digitalWrite(PINO_LED, HIGH);
+  fimAviso = millis() + 1200;                         // mostra "CLIQUE!" no OLED por 1,2 s
   Serial.printf("CLIQUE %u\n", cliques);
   desenhar();
 }
@@ -128,6 +138,11 @@ void loop() {
     estavaApertado = lido;
     if (lido) aoClicar();                              // so na hora de APERTAR (um clique = um evento)
   }
+
+  // Acabou o aviso "CLIQUE!": volta a tela normal
+  static bool avisoAtivo = false;
+  if (millis() < fimAviso) avisoAtivo = true;
+  else if (avisoAtivo) { avisoAtivo = false; desenhar(); }
 
   // Passou o tempo do anuncio rapido: volta ao ritmo lento para poupar bateria
   if (rapido && millis() > fimRapido) {

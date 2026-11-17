@@ -181,8 +181,26 @@ class Agente:
         rssi = self.rssi_recente(agora)
         if self.estado == "FIXO":
             self.liberar(rssi, "AUTO", "2º clique: volta ao automático")
+            self.sinal_clique("CLIQUE recebido: modo AUTOMÁTICO (o sinal manda)")
         else:
             self.liberar(rssi, "FIXO", "clique: crachá no recipiente, fica liberado")
+            self.sinal_clique("CLIQUE recebido: modo FIXO (liberado até o próximo clique)")
+
+    def sinal_clique(self, texto):
+        """Feedback de que o botao do recipiente foi clicado: bipe + aviso verde na tela por 2 s."""
+        try:
+            import winsound
+            winsound.Beep(1200, 120)
+        except Exception:
+            pass                                   # sem bipe fora do Windows; o aviso na tela continua
+        t = tk.Toplevel(self.raiz)
+        t.overrideredirect(True)
+        t.attributes("-topmost", True)
+        t.configure(bg="#15803d")
+        largura = t.winfo_screenwidth()
+        t.geometry(f"700x80+{(largura - 700) // 2}+40")
+        tk.Label(t, text=texto, font=("Segoe UI", 18, "bold"), fg="white", bg="#15803d").pack(expand=True, fill="both")
+        t.after(2000, t.destroy)
 
     # ---------- monitoramento (so com o PC liberado) ----------
     def monitorar(self, agora):
