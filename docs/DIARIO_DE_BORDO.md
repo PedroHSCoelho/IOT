@@ -25,6 +25,7 @@
 | 17/11/2026 | **Nova arquitetura de teste (2 placas):** Heltec 1 = **crachá** (só anuncia o sinal; botão sem efeito), Heltec 2 = **recipiente** com o push button no GPIO 4 (conta os cliques; depois vira a parte LoRa do recipiente). O agente passou a ouvir os dois rádios BLE (`UNIFESP-BADGE` #101 e `UNIFESP-HOLDER` #201). Escrito, a testar. |
 | 17/11/2026 | **Sinal de clique:** o recipiente mostra "CLIQUE! número N" no OLED por 1,2 s (e acende o LED); o PC mostra um aviso verde por 2 s e toca um bipe. Também: `__pycache__` tinha entrado no Git por engano; removido e ignorado. |
 | 17/11/2026 | **Duas placas (crachá + recipiente) com o agente v3 e o sinal de clique: todos os testes passaram.** Parte A (Bluetooth) fechada. Próximo: testes 6 e 7 (LoRa → gateway → MQTT → banco), que exigem as duas Heltec, então o arranjo BLE é desmontado por enquanto. |
+| 17/11/2026 | **Fim da sessão.** Parte B (testes 6 e 7) não começou. Descobertas de rede (P18): o PC do Flávio estava em `172.21.221.229` (rede de instituição, gateway `172.21.220.1`) e o notebook em `172.20.10.9`; o teste de porta 1883 falhou. Decisão: hotspot 2,4 GHz e, de preferência, broker + Node-RED num PC só (o do Flávio). Retomada em `PENDENCIAS.md`, seção 0. |
 
 ## 2. Problemas encontrados e como foram resolvidos (alimenta o "registro de erros" do relatório)
 
@@ -47,6 +48,7 @@
 | P15 | 12/11 | **Windows não permite desbloquear por programa** | Só `LockWorkStation` (bloquear) existe para apps comuns | Tela de bloqueio **própria** em tela cheia (demonstração; limitação declarada) |
 | P16 | 12/11 | Meta "afastar→bloqueio ≤ 10 s" pode estourar | Política aprovada (janela 8 s + 10 s + aviso 5 s) prioriza não bloquear por obstrução | **A medir**; `--janela 4 --seg-ausente 3 --aviso 3` encurta |
 | P17 | 12/11 | Windows bloqueia a porta 1883 para outros PCs? | Notebook do Pedro sem administrador para liberar firewall | **Encaminhado (17/11), a validar no laboratório:** o **broker roda no PC do Flávio** (tem administrador, libera a porta 1883 uma vez) e o **Node-RED roda no notebook do Pedro** (que tem o `cloud/.env`), conectando para fora ao IP do Flávio; saída não precisa de firewall. Gerar o fluxo com `MQTT_HOST=<IP do Flávio> npm run gerar-fluxo` |
+| P18 | 17/11 | PC do Flávio e notebook não se enxergavam; porta 1883 sem resposta | Redes diferentes (`172.21.220.x` institucional × `172.20.10.x` hotspot); Heltec não entra em Wi-Fi corporativo; notebook sem administrador para liberar a 1883 | Usar o **hotspot 2,4 GHz**; **broker + Node-RED num PC só** (do Flávio, copiando o `.env` à mão). A validar |
 
 ## 3. Decisões (e por quê)
 
