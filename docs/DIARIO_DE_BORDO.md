@@ -20,6 +20,7 @@
 | 17/11/2026 | **Preparação sem hardware:** pinagem proposta para a PCI (`hardware/PINAGEM.md`), pastas do Git criadas (`firmware/cracha`, `firmware/gateway`, `hardware`, `enclosure`) e caminho para o broker sem administrador (P17). |
 | 17/11/2026 | **Teste do agente v2 (PC do Flávio, Heltec com o teste 05):** clique perto liberou em **< 1 s** (RSSI −58 dBm); clique longe foi ignorado. A equipe redefiniu o ciclo: 1º clique libera, **2º clique arma** (crachá fora do porta-crachá), só então afastar bloqueia; 3º clique em diante repete o ciclo. Agente v2.1 escrito (estado ARMADO), a testar. Depois a equipe precisou que **o clique que coloca o crachá nunca seja ignorado e não use BLE** (o porta-crachá está sempre perto): os cliques viram um interruptor, e o BLE só vigia a distância em ARMADO; `--liberar` removido. |
 | 17/11/2026 | **Agente v2.1 testado: deu certo** (clique = interruptor). Em seguida a equipe redefiniu de novo a lógica (**agente v3**): modo **automático** (chegar perto desbloqueia, sair de perto bloqueia) e modo **fixo** (1º clique mantém liberado até o 2º clique, sem medir BLE); cada clique alterna FIXO ↔ AUTOMÁTICO; `--seg-ausente` de 10 s para 5 s. Escrito, a testar. |
+| 17/11/2026 | **Bloqueio demorava demais ao afastar** (≈ 8+5+5 s no pior caso): padrões mudados para `--janela 3 --seg-ausente 3 --aviso 3` (≈ 9 s). Risco: janela curta pode bloquear ao tapar o crachá; **a medir**. |
 
 ## 2. Problemas encontrados e como foram resolvidos (alimenta o "registro de erros" do relatório)
 

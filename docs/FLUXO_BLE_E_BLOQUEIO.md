@@ -22,8 +22,8 @@ Dois caminhos independentes saem do mesmo clique:
 
 ## 2. Passo a passo do usuário (versão 3, decisão de 17/11/2026)
 1. **Modo automático (sem clicar):** o PC está bloqueado. O usuário **chega perto** (pico do RSSI > `--liberar`,
-   −60 dBm) e o PC **desbloqueia sozinho**. Se **sai de perto** (pico < `--manter`, −70 dBm, por `--seg-ausente` = 5 s),
-   aparece o aviso **"Bloqueando em 5 s"** e o PC **bloqueia**.
+   −60 dBm) e o PC **desbloqueia sozinho**. Se **sai de perto** (pico < `--manter`, −70 dBm, por `--seg-ausente` = 3 s),
+   aparece o aviso **"Bloqueando em 3 s"** e o PC **bloqueia**.
 2. **1º clique** = crachá colocado no porta-crachá. O PC **fica desbloqueado até o 2º clique**, mesmo longe, sem
    sinal ou com sinal fraco (o BLE não é medido). O clique nunca é ignorado.
 3. **2º clique** = crachá tirado do porta-crachá. Volta ao **modo automático**: desbloqueia e bloqueia conforme o sinal.
@@ -64,15 +64,14 @@ Nome `UNIFESP-BADGE` + dados do fabricante (id de empresa genérico `0xFFFF`), 2
 | --- | --- | --- |
 | `--liberar` | −60 dBm | automático: bloqueado desbloqueia quando chega um pacote mais forte que isto |
 | `--manter` | −70 dBm | automático liberado: "longe" = pico da janela abaixo disto |
-| `--janela` | 8 s | janela do pico (ignora quedas rápidas por obstrução) |
-| `--seg-ausente` | 5 s | tempo "longe" seguido antes do aviso |
-| `--aviso` | 5 s | contagem regressiva antes de bloquear |
+| `--janela` | 3 s | janela do pico (ignora quedas rápidas por obstrução) |
+| `--seg-ausente` | 3 s | tempo "longe" seguido antes do aviso |
+| `--aviso` | 3 s | contagem regressiva antes de bloquear |
 | `--iniciar-liberado` | desligado | começa liberado (para desenvolver sem se trancar) |
 | `--mqtt IP` | desligado | publica `liberado`/`bloqueado` em `unifesp/ponto/pc/<badge>/status` (só renova o `ultimo_contato` do PC) |
 
-> **Atenção à meta "afastar → bloqueio ≤ 10 s" do PDF:** com os padrões acima o bloqueio leva até
-> ≈ 8 s (janela) + 5 s + 5 s (aviso). É a política aprovada em 12/11/2026 (prioriza não bloquear por obstrução).
-> Para encurtar: `--janela 3 --seg-ausente 3 --aviso 3` (≈ 9 s). **Medir e registrar** no diário.
+> **Meta "afastar → bloqueio ≤ 10 s":** com os padrões (17/11/2026) leva até ≈ 3 s (janela) + 3 s + 3 s (aviso) ≈ 9 s.
+> Janela curta bloqueia mais rápido, mas tapar o crachá com o corpo pode bloquear sem querer: se acontecer, aumentar `--janela`. **Medir e registrar** no diário.
 
 ## 6. Relação com o banco (nada muda nas tabelas)
 - A origem `ble` (`PRESENTE` = CHEGADA, `AUSENTE` = SAÍDA, regra R3) **continua existindo** no banco e no fluxo,

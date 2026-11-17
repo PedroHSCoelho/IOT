@@ -27,7 +27,7 @@ SAIDA DE EMERGENCIA: com a tela de bloqueio aparecendo, aperte ESC para encerrar
 Instalar (uma vez):   pip install bleak        (opcional, para avisar o servidor: pip install paho-mqtt)
 Rodar:                python agente_bloqueio.py
 Desenvolver sem se trancar:   python agente_bloqueio.py --iniciar-liberado
-Ajustar:              --liberar -60 (perto) --manter -70 (longe) --janela 8 --seg-ausente 5 --aviso 5
+Ajustar:              --liberar -60 (perto) --manter -70 (longe) --janela 3 --seg-ausente 3 --aviso 3
 Opcional (ainda nao testado):  --mqtt 192.168.0.10   publica o status do PC em unifesp/ponto/pc/<badge>/status
 """
 import argparse
@@ -47,9 +47,9 @@ ap = argparse.ArgumentParser()
 ap.add_argument("--badge", type=int, default=101, help="numero do cracha que desbloqueia este PC")
 ap.add_argument("--liberar", type=float, default=-60, help="automatico: bloqueado desbloqueia quando um pacote passa disto (dBm)")
 ap.add_argument("--manter", type=float, default=-70, help="automatico liberado: 'longe' = melhor RSSI da janela abaixo disto (dBm)")
-ap.add_argument("--janela", type=float, default=8, help="segundos considerados para o melhor RSSI (pico)")
-ap.add_argument("--seg-ausente", type=float, default=5, help="segundos 'longe' seguidos antes do aviso")
-ap.add_argument("--aviso", type=float, default=5, help="segundos de contagem 'bloqueando em N s' antes de bloquear")
+ap.add_argument("--janela", type=float, default=3, help="segundos considerados para o melhor RSSI (pico)")
+ap.add_argument("--seg-ausente", type=float, default=3, help="segundos 'longe' seguidos antes do aviso")
+ap.add_argument("--aviso", type=float, default=3, help="segundos de contagem 'bloqueando em N s' antes de bloquear")
 ap.add_argument("--iniciar-liberado", action="store_true", help="comeca liberado (util para desenvolver)")
 ap.add_argument("--mqtt", default=None, help="IP do broker MQTT (opcional): publica o status do PC")
 ap.add_argument("--mqtt-porta", type=int, default=1883)
