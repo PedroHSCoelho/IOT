@@ -92,7 +92,9 @@ Nome `UNIFESP-BADGE` + dados do fabricante (id de empresa genérico `0xFFFF`), 2
 ## 8. Como testar (sem rede, sem banco)
 1. Heltec com `firmware/testes/05_ble_anuncio` gravado (antena conectada), ligada na USB.
 2. No PC: `pip install bleak` e `python pc-agent/agente_bloqueio.py` (tela bloqueia; ESC sai).
-3. Aperte PRG perto do PC: deve liberar em ≈ 1 s. Aperte longe (> 3 m): "Clique ignorado".
-4. Liberado, **tape o crachá com a mão/corpo**: **não** deve bloquear de imediato (pico da janela).
-5. Afaste o crachá (outra sala): aviso → bloqueio. Anote os tempos no diário.
+3. Aperte PRG (1º clique): deve liberar em < 1 s, **mesmo com o crachá longe** (clique de colocar nunca é ignorado).
+4. Com o PC liberado, afaste o crachá **sem clicar**: **não** deve bloquear (nem após 20 s).
+5. Aperte PRG de novo (2º clique): o terminal mostra `ARMADO`. Afaste o crachá (outra sala): aviso → bloqueio.
+   Cronometre. Perto, **tape o crachá com a mão/corpo**: **não** deve bloquear de imediato (pico da janela).
+5b. Com o PC bloqueado ou armado, aperte PRG (3º clique): libera de novo; o ciclo se repete.
 6. Para só ver números: `python pc-agent/teste_ble_rssi.py`.
