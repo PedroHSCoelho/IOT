@@ -17,6 +17,7 @@
 | 12/11/2026 | **Teste 1 (OLED + LED): passou.** **Teste 2 (ping-pong LoRa): passou** (Flávio ajustou o código para a RadioLib 8.x). Teste 3 (DS1302) escrito, **adiado: bateria CR2032 não chegou**. Foco redefinido: só **BLE crachá↔PC** e **comunicação com o banco**. **Teste 5 (BLE): passou**, com medições de RSSI. Testes 6 e 7 (gateway MQTT e crachá por PRG) escritos e **adiados para outro dia**. |
 | 12/11/2026 | **Agente v1 (bloqueio por média de RSSI) testado: dois problemas** (ver seção 2). Equipe propõe o **fluxo novo: o botão desbloqueia**. Decisões 1, 2 e 3 aprovadas. Código e documentos refeitos (agente v2, firmware 05 com contador de cliques). **Ainda não testado.** |
 | 12/11/2026 | **Fim da sessão.** Flávio saiu do laboratório; tudo enviado ao Git (`b2964ab` e seguintes). Próximo encontro: testar o agente v2 (ver `PENDENCIAS.md`, seção 0). |
+| 17/11/2026 | **Preparação sem hardware:** pinagem proposta para a PCI (`hardware/PINAGEM.md`), pastas do Git criadas (`firmware/cracha`, `firmware/gateway`, `hardware`, `enclosure`) e caminho para o broker sem administrador (P17). |
 
 ## 2. Problemas encontrados e como foram resolvidos (alimenta o "registro de erros" do relatório)
 
@@ -38,12 +39,14 @@
 | P14 | 12/11 | **Desbloqueio demorava** (agente v1) | A média das 5 leituras + 3 s de "presença" estável atrasavam | Leitura **única** no pacote do clique (anúncio rápido de 100 ms após o botão) |
 | P15 | 12/11 | **Windows não permite desbloquear por programa** | Só `LockWorkStation` (bloquear) existe para apps comuns | Tela de bloqueio **própria** em tela cheia (demonstração; limitação declarada) |
 | P16 | 12/11 | Meta "afastar→bloqueio ≤ 10 s" pode estourar | Política aprovada (janela 8 s + 10 s + aviso 5 s) prioriza não bloquear por obstrução | **A medir**; `--janela 4 --seg-ausente 3 --aviso 3` encurta |
-| P17 | 12/11 | Windows bloqueia a porta 1883 para outros PCs? | Notebook do Pedro sem administrador para liberar firewall | **Em aberto** (testes 6/7 ficam para outro dia): rodar broker em PC com administrador ou liberar a porta |
+| P17 | 12/11 | Windows bloqueia a porta 1883 para outros PCs? | Notebook do Pedro sem administrador para liberar firewall | **Encaminhado (17/11), a validar no laboratório:** o **broker roda no PC do Flávio** (tem administrador, libera a porta 1883 uma vez) e o **Node-RED roda no notebook do Pedro** (que tem o `cloud/.env`), conectando para fora ao IP do Flávio; saída não precisa de firewall. Gerar o fluxo com `MQTT_HOST=<IP do Flávio> npm run gerar-fluxo` |
 
 ## 3. Decisões (e por quê)
 
 | Data | Decisão | Por quê / alternativas |
 | --- | --- | --- |
+| 17/11 | **Proposta:** botão no GPIO 4, buzzer no GPIO 5, LED externo opcional no GPIO 6 | Pinos livres, sem função de boot, longe de LoRa/OLED/DS1302; **a confirmar na protoboard** (Teste 4) |
+| 17/11 | **Proposta:** broker no PC do Flávio, Node-RED no notebook do Pedro (`MQTT_HOST`) | Só o PC com administrador precisa liberar a 1883; alternativa: tudo no PC do Flávio, copiando o `cloud/.env` à mão (nunca pelo Git) |
 | 03/11 | Banco no **Supabase**, broker **aedes** | Sem Docker nem administrador; protocolo MQTT idêntico ao Mosquitto |
 | 03/11 | Regra de negócio **no banco** (`registrar_ponto()`); jornada em **views** | Regra num lugar só, testável em SQL; nunca fica desatualizada |
 | 03/11 | Alternância obrigatória (R4) no lugar da "regra dos 30 min" do PDF | Mais simples de explicar; **explicar na arguição** |

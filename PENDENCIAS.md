@@ -1,7 +1,7 @@
 # Pendências e estado do projeto — Crachá Inteligente de Ponto
 
 > **Para quem for retomar (pessoa ou IA):** este arquivo é a fonte da verdade do que está feito e do que falta.
-> Última atualização: **12/11/2026** (**fluxo novo: o botão desbloqueia o PC**; ver seção 3A e `docs/FLUXO_BLE_E_BLOQUEIO.md`). Apresentação: **04/12/2026**. Prazos do cronograma (PDF do projeto):
+> Última atualização: **17/11/2026** (**fluxo novo: o botão desbloqueia o PC**; ver seção 3A e `docs/FLUXO_BLE_E_BLOQUEIO.md`). Apresentação: **04/12/2026**. Prazos do cronograma (PDF do projeto):
 > circuito validado em protoboard até **09/11** · layout da PCI pronto até **14/11** · PCI fabricada e montada até **23/11** · última semana para integração, documentação e ensaio.
 >
 > Leia também: `docs/DIARIO_DE_BORDO.md` (relato, problemas e decisões; **atualizar a cada passo**), `docs/FLUXO_BLE_E_BLOQUEIO.md`, `CLAUDE.md` (convenções e armadilhas), `BANCO_DE_DADOS.md` (especificação do banco),
@@ -22,7 +22,8 @@
 4. **Avisar o professor** da mudança de requisito (botão desbloqueia; PC não registra ponto).
 5. **Peças que faltam chegar:** bateria CR2032 (Mercado Livre), botão, buzzer. Quando chegarem: Teste 3 (persistência do DS1302) e Teste 4 (botão + LED + buzzer); depois trocar o PRG pelo botão real (`PINO_BOTAO` no teste 05).
 6. **Prazos:** layout da PCI até **14/11** (precisa da pinagem confirmada), PCI montada até **23/11**, apresentação **04/12/2026**. A PCI (3 pts) é o maior risco: começar o KiCad assim que a pinagem fechar.
-7. **Pontas soltas:** registrar distância/RSSI de alcance do LoRa (teste 2); print do T10 sem senha; divisão de tarefas A/B/C/D; criar as pastas do Git (`firmware/cracha`, `firmware/gateway`, `hardware/`, `enclosure/`); antes de 04/12 reativar o Supabase, exportar o histórico e ensaiar com o hotspot em 2,4 GHz.
+7. **Feito em 17/11:** pastas do Git criadas (`firmware/cracha`, `firmware/gateway`, `hardware/`, `enclosure/`), pinagem proposta em `hardware/PINAGEM.md`, `MQTT_HOST` no gerador do fluxo. Falta: esquemático no KiCad (bloqueado pela confirmação da pinagem).
+8. **Pontas soltas:** registrar distância/RSSI de alcance do LoRa (teste 2); print do T10 sem senha; divisão de tarefas A/B/C/D; criar as pastas do Git (`firmware/cracha`, `firmware/gateway`, `hardware/`, `enclosure/`); antes de 04/12 reativar o Supabase, exportar o histórico e ensaiar com o hotspot em 2,4 GHz.
 
 **Regras que valem sempre:** nunca ligar a Heltec sem antena · `pull` + commit + `push` a cada passo · atualizar o diário (problemas incluídos) · não mudar tabelas sem perguntar.
 
@@ -124,4 +125,6 @@ Metas do cronograma: protoboard validada até 09/11 (**já passou**), layout da 
 - Carga semanal = carga diária × 5.
 - Seed com `seq` negativo (−1 a −4), para nunca colidir com o contador do crachá.
 - O status do PC (`unifesp/ponto/pc/{badge}/status`) atualiza o dispositivo `pc-lab-01` (ou o `id` enviado no JSON); o do gateway atualiza `gw-lab`.
+- (17/11/2026, proposta) **Pinagem:** botão GPIO 4, buzzer GPIO 5, LED externo opcional GPIO 6 (ver `hardware/PINAGEM.md`); confirmar no Teste 4 antes do layout.
+- (17/11/2026, proposta) **Broker no PC do Flávio** (porta 1883 liberada uma vez, com administrador) e **Node-RED no notebook do Pedro**; gerar o fluxo com `MQTT_HOST=<IP do Flávio> npm run gerar-fluxo`. Alternativa: tudo no PC do Flávio, copiando o `.env` à mão. Falta confirmar com a equipe.
 - (12/11/2026, aprovado pela equipe) O botão com o PC já liberado é **ignorado** pelo PC; a política de bloqueio padrão é pico de 8 s < −70 dBm por 10 s + aviso de 5 s; o clique chega ao PC por contador no anúncio BLE; o agente não publica `origem:"ble"`.

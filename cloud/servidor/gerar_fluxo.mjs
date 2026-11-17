@@ -433,7 +433,9 @@ const fluxo = [
 
   // ---------- Configurações (reaproveitadas) ----------
   { id: 'broker_local', type: 'mqtt-broker', name: 'Broker local (aedes)',
-    broker: 'localhost', port: '1883', clientid: 'nodered-ponto', autoConnect: true,
+    // Endereço do broker: por padrão este computador. Para usar o broker de OUTRO PC (ex.: o do Flávio,
+    // que tem administrador), gere assim:  MQTT_HOST=192.168.x.y npm run gerar-fluxo
+    broker: process.env.MQTT_HOST || 'localhost', port: '1883', clientid: 'nodered-ponto', autoConnect: true,
     usetls: false, protocolVersion: '4', keepalive: '60', cleansession: true,
     autoUnsubscribe: true, birthTopic: '', closeTopic: '', willTopic: '', sessionExpiry: '' },
 

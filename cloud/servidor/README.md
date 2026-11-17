@@ -73,3 +73,13 @@ Para conferir no Supabase: `SELECT * FROM vw_historico ORDER BY ts_evento DESC;`
 - O editor do Node-RED (porta 1880) **não tem senha**. Na rede da faculdade, qualquer um que alcance o seu notebook poderia mexer no fluxo. Use só em rede confiável (ou hotspot) e feche ao terminar.
 - Se alterar `gerar_fluxo.mjs`: `npm run gerar-fluxo` e reinicie o Node-RED.
 - Se instalar o Mosquitto no futuro, o crachá e o fluxo não mudam: basta apontar o `broker_local` para ele.
+
+## Broker em outro PC (sem administrador no seu)
+
+O crachá/gateway precisa alcançar o broker pela rede, e liberar a porta 1883 no Windows exige administrador. Solução: o **broker** (`npm run broker`) roda no PC que tem administrador; o **Node-RED** roda no seu notebook e só faz conexão de saída. Gere o fluxo apontando para o IP do outro PC:
+
+```text
+MQTT_HOST=192.168.x.y npm run gerar-fluxo     # PowerShell:  $env:MQTT_HOST='192.168.x.y'; npm run gerar-fluxo
+```
+
+Sem `MQTT_HOST` o padrão é `localhost`. Depois reinicie o Node-RED. Não commite o `flows.json` com um IP de laboratório; regenere sem a variável antes do commit.
