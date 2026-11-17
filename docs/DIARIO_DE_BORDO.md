@@ -24,6 +24,7 @@
 | 17/11/2026 | **Agente v3 com `--janela 3 --seg-ausente 3 --aviso 3` testado: passou** (desbloqueio ao chegar perto, bloqueio ao afastar, modo fixo pelo clique e tapar o crachá sem bloquear). Tempos exatos não foram anotados; **medir com cronômetro** na tabela de metas. |
 | 17/11/2026 | **Nova arquitetura de teste (2 placas):** Heltec 1 = **crachá** (só anuncia o sinal; botão sem efeito), Heltec 2 = **recipiente** com o push button no GPIO 4 (conta os cliques; depois vira a parte LoRa do recipiente). O agente passou a ouvir os dois rádios BLE (`UNIFESP-BADGE` #101 e `UNIFESP-HOLDER` #201). Escrito, a testar. |
 | 17/11/2026 | **Sinal de clique:** o recipiente mostra "CLIQUE! número N" no OLED por 1,2 s (e acende o LED); o PC mostra um aviso verde por 2 s e toca um bipe. Também: `__pycache__` tinha entrado no Git por engano; removido e ignorado. |
+| 17/11/2026 | **Duas placas (crachá + recipiente) com o agente v3 e o sinal de clique: todos os testes passaram.** Parte A (Bluetooth) fechada. Próximo: testes 6 e 7 (LoRa → gateway → MQTT → banco), que exigem as duas Heltec, então o arranjo BLE é desmontado por enquanto. |
 
 ## 2. Problemas encontrados e como foram resolvidos (alimenta o "registro de erros" do relatório)
 
@@ -84,6 +85,7 @@
 | Agente v1 (média + tela própria) | 12/11 | ❌ reprovado na prática | P13 e P14 → fluxo novo |
 | Agente v2: clique perto libera / clique longe ignorado | 17/11 | ✅ passou | < 1 s, −58 dBm |
 | Agente v2.1 (clique = interruptor; 2º clique arma; longe bloqueia) | 17/11 | ✅ passou | superado pela v3 |
+| Duas placas: crachá (BLE) + recipiente (botão) com sinal de clique | 17/11 | ✅ passou | todos os testes |
 | Agente v3 (automático por sinal + modo fixo por clique) | 17/11 | ✅ passou | janela 3 s / ausente 3 s / aviso 3 s; tapar o crachá não bloqueou | `docs/FLUXO_BLE_E_BLOQUEIO.md` |
 | 6 — gateway MQTT; 7 — crachá por PRG | — | 🔲 adiados | Código escrito |
 
