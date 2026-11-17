@@ -1,5 +1,9 @@
 # Fluxo do botão, do BLE e do bloqueio do PC (versão 3, 17/11/2026)
 
+> **Duas placas (17/11/2026):** **Heltec 1 = crachá** (`SOU_RECIPIENTE=false`, anuncia `UNIFESP-BADGE` #101, botão sem efeito; o PC mede o RSSI)
+> e **Heltec 2 = recipiente/porta-crachá** (`SOU_RECIPIENTE=true`, anuncia `UNIFESP-HOLDER` #201, tem o botão no GPIO 4; o PC conta os cliques).
+> Onde este texto diz "clique", é o clique **no recipiente**. A Heltec 2 será depois a parte LoRa do recipiente.
+
 > Este documento descreve o esquema **novo**, que substituiu o "bloqueio por média de RSSI" (versão 1).
 > O porquê da mudança está em `docs/DIARIO_DE_BORDO.md` (seção "Problemas").
 
@@ -91,7 +95,7 @@ Nome `UNIFESP-BADGE` + dados do fabricante (id de empresa genérico `0xFFFF`), 2
 
 ## 8. Como testar (sem rede, sem banco)
 1. Heltec com `firmware/testes/05_ble_anuncio` gravado (antena conectada), ligada na USB.
-2. No PC: `pip install bleak` e `python pc-agent/agente_bloqueio.py` (tela bloqueia; ESC sai).
+2. **Duas placas:** grave o `05_ble_anuncio` com `SOU_RECIPIENTE=false` na Heltec 1 (crachá) e com `true` na Heltec 2 (recipiente, botão no GPIO 4 e GND). No PC: `pip install bleak` e `python pc-agent/agente_bloqueio.py` (tela bloqueia; ESC sai).
 3. **Automático:** com a tela bloqueada, **aproxime** o crachá (< 1 m): deve desbloquear sozinho. Anote o tempo.
 4. **Afastar sem clicar** (outra sala): aviso → bloqueio. Cronometre (meta ≤ 10 s). Aproxime de novo: desbloqueia.
 5. **1º clique** (PRG): modo FIXO. Afaste o crachá por mais de 20 s: **não** deve bloquear.

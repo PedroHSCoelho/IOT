@@ -22,6 +22,7 @@
 | 17/11/2026 | **Agente v2.1 testado: deu certo** (clique = interruptor). Em seguida a equipe redefiniu de novo a lógica (**agente v3**): modo **automático** (chegar perto desbloqueia, sair de perto bloqueia) e modo **fixo** (1º clique mantém liberado até o 2º clique, sem medir BLE); cada clique alterna FIXO ↔ AUTOMÁTICO; `--seg-ausente` de 10 s para 5 s. Escrito, a testar. |
 | 17/11/2026 | **Bloqueio demorava demais ao afastar** (≈ 8+5+5 s no pior caso): padrões mudados para `--janela 3 --seg-ausente 3 --aviso 3` (≈ 9 s). Risco: janela curta pode bloquear ao tapar o crachá; **a medir**. |
 | 17/11/2026 | **Agente v3 com `--janela 3 --seg-ausente 3 --aviso 3` testado: passou** (desbloqueio ao chegar perto, bloqueio ao afastar, modo fixo pelo clique e tapar o crachá sem bloquear). Tempos exatos não foram anotados; **medir com cronômetro** na tabela de metas. |
+| 17/11/2026 | **Nova arquitetura de teste (2 placas):** Heltec 1 = **crachá** (só anuncia o sinal; botão sem efeito), Heltec 2 = **recipiente** com o push button no GPIO 4 (conta os cliques; depois vira a parte LoRa do recipiente). O agente passou a ouvir os dois rádios BLE (`UNIFESP-BADGE` #101 e `UNIFESP-HOLDER` #201). Escrito, a testar. |
 
 ## 2. Problemas encontrados e como foram resolvidos (alimenta o "registro de erros" do relatório)
 
@@ -49,6 +50,7 @@
 
 | Data | Decisão | Por quê / alternativas |
 | --- | --- | --- |
+| 17/11 | **Cliques vêm do recipiente (Heltec 2), distância vem do crachá (Heltec 1)** | Simula o porta-crachá real: o botão fica no recipiente, não no crachá. Mesmo firmware 05 com a chave `SOU_RECIPIENTE`. Sem sinal do crachá no 2º clique, o PC bloqueia em ≈ 6 s |
 | 17/11 | **Agente v3:** chegar perto desbloqueia e sair bloqueia (automático); 1º clique prende liberado (sem BLE) até o 2º clique; `--seg-ausente` 5 s | Pedido da equipe. Riscos: volta o desbloqueio por proximidade que falhou na v1 (P13); mitigado com pico + histerese (−60/−70). Tempo total do bloqueio ≈ 8+5+5 s: a medir (`--janela 3 --seg-ausente 3 --aviso 3` encurta) |
 | 17/11 | **Cliques são um interruptor: colocar o crachá libera sem BLE (nunca ignorado); tirar (2º clique) arma; só então longe bloqueia; repete** | Simula crachá no/fora do porta-crachá e casa com CHEGADA/SAÍDA; substitui a regra de 12/11 (2º clique ignorado). Risco aceito: PC aberto se a pessoa sair sem o 2º clique |
 | 17/11 | **Proposta:** botão no GPIO 4, buzzer no GPIO 5, LED externo opcional no GPIO 6 | Pinos livres, sem função de boot, longe de LoRa/OLED/DS1302; **a confirmar na protoboard** (Teste 4) |

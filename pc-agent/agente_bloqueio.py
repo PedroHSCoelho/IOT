@@ -1,5 +1,10 @@
 """Agente do PC (versao 3, 17/11/2026): o SINAL (BLE) controla a tela; o BOTAO "prende" o PC liberado.
 
+Dois radios BLE (duas Heltec):
+  CRACHA     (Heltec 1, "UNIFESP-BADGE", numero 101): so anuncia o sinal; o PC mede o RSSI (distancia).
+  RECIPIENTE (Heltec 2, "UNIFESP-HOLDER", numero 201): o porta-cracha, com o botao; o contador de cliques
+             no anuncio dele diz "colocou/tirou". O PC conta os cliques e NAO usa o RSSI do recipiente.
+
 Dois modos, como um cracha que ora esta no porta-cracha, ora esta com a pessoa:
   AUTOMATICO (sem clique)  o sinal manda:
        - o usuario chega perto (pico do RSSI > --liberar)  -> DESBLOQUEIA sozinho;
@@ -40,11 +45,13 @@ from collections import deque
 
 from bleak import BleakScanner
 
-PREFIXO = "UNIFESP-BADGE"   # nome anunciado pelo cracha
+PREFIXO_CRACHA = "UNIFESP-BADGE"       # Heltec 1: anuncia o sinal (distancia)
+PREFIXO_RECIPIENTE = "UNIFESP-HOLDER"  # Heltec 2: porta-cracha com o botao (cliques)
 ID_EMPRESA = 0xFFFF         # id generico usado nos dados do fabricante (ver firmware 05)
 
 ap = argparse.ArgumentParser()
-ap.add_argument("--badge", type=int, default=101, help="numero do cracha que desbloqueia este PC")
+ap.add_argument("--badge", type=int, default=101, help="numero do cracha (mede a distancia)")
+ap.add_argument("--recipiente", type=int, default=201, help="numero do recipiente/porta-cracha (conta os cliques)")
 ap.add_argument("--liberar", type=float, default=-60, help="automatico: bloqueado desbloqueia quando um pacote passa disto (dBm)")
 ap.add_argument("--manter", type=float, default=-70, help="automatico liberado: 'longe' = melhor RSSI da janela abaixo disto (dBm)")
 ap.add_argument("--janela", type=float, default=3, help="segundos considerados para o melhor RSSI (pico)")
@@ -55,24 +62,25 @@ ap.add_argument("--mqtt", default=None, help="IP do broker MQTT (opcional): publ
 ap.add_argument("--mqtt-porta", type=int, default=1883)
 ARGS = ap.parse_args()
 
-JANELA_CLIQUE = 1.0         # segundos esperando um pacote forte depois de ver o clique
-pacotes = deque()           # (hora, rssi, boot, contador): a thread do Bluetooth coloca, a tela le
+pacotes = deque()           # (hora, tipo 'c'/'r', rssi, boot, contador): a thread do Bluetooth coloca, a tela le
 parar = threading.Event()
 
 
 # ---------------------------------------------------------------- Bluetooth (thread de fundo)
 def ao_detectar(dispositivo, anuncio):
-    """O PC chama isto a cada anuncio BLE que escuta; guardamos so os do NOSSO cracha."""
+    """O PC chama isto a cada anuncio BLE que escuta; guardamos so os do NOSSO cracha e do NOSSO recipiente."""
     nome = anuncio.local_name or dispositivo.name or ""
     dados = anuncio.manufacturer_data.get(ID_EMPRESA)
-    if not nome.startswith(PREFIXO) or not dados or len(dados) < 6 or dados[0] != 1:
+    if not dados or len(dados) < 6 or dados[0] != 1:
         return
-    badge = dados[1] | (dados[2] << 8)
-    if badge != ARGS.badge:
+    numero = dados[1] | (dados[2] << 8)
+    if nome.startswith(PREFIXO_CRACHA) and numero == ARGS.badge:
+        tipo = "c"
+    elif nome.startswith(PREFIXO_RECIPIENTE) and numero == ARGS.recipiente:
+        tipo = "r"
+    else:
         return
-    boot = dados[3]
-    contador = dados[4] | (dados[5] << 8)
-    pacotes.append((time.time(), anuncio.rssi, boot, contador))
+    pacotes.append((time.time(), tipo, anuncio.rssi, dados[3], dados[4] | (dados[5] << 8)))
 
 
 async def ouvir():
@@ -132,6 +140,7 @@ class Agente:
         self.aviso_fim = None
         self.ultimo_pacote = 0.0
         self.ultimo_rssi = None
+        self.ultimo_recipiente = 0.0
         self.msg = ""
         self.ultimo_status = 0.0
         threading.Thread(target=thread_ble, daemon=True).start()
@@ -142,18 +151,26 @@ class Agente:
     # ---------- leitura dos pacotes ----------
     def processar_pacotes(self):
         while pacotes:
-            t, rssi, boot, cont = pacotes.popleft()
-            self.ultimo_pacote, self.ultimo_rssi = t, rssi
-            self.hist.append((t, rssi))
-            if self.boot != boot:
-                # 1a vez que vemos o cracha, ou ele reiniciou: so sincroniza. NAO e clique.
-                self.boot, self.contador = boot, cont
-            elif cont != self.contador:
-                self.contador = cont          # contador mudou = botao apertado
-                self.clique = {"t": t, "melhor": rssi, "feito": False}
-                print(f"\n>>> clique detectado (RSSI {rssi:.0f} dBm)")
-            elif self.clique and not self.clique["feito"] and t - self.clique["t"] <= JANELA_CLIQUE:
-                self.clique["melhor"] = max(self.clique["melhor"], rssi)   # melhor pacote logo apos o clique
+            t, tipo, rssi, boot, cont = pacotes.popleft()
+            if tipo == "c":
+                # Pacote do CRACHA: so serve para medir a distancia (RSSI).
+                self.ultimo_pacote, self.ultimo_rssi = t, rssi
+                self.hist.append((t, rssi))
+            else:
+                # Pacote do RECIPIENTE: o contador mudar = botao apertado (colocou/tirou o cracha).
+                self.ultimo_recipiente = t
+                if self.boot != boot:
+                    self.boot, self.contador = boot, cont      # 1a vez ou reinicio: so sincroniza, NAO e clique
+                elif cont != self.contador:
+                    self.contador = cont
+                    self.clique = {"t": t, "feito": False}
+                    print("\n>>> clique no recipiente")
+
+    def rssi_recente(self, agora):
+        """RSSI do cracha se ele foi ouvido ha menos de 3 s; senao None (cracha sem sinal)."""
+        if self.ultimo_pacote and agora - self.ultimo_pacote < 3.0:
+            return self.ultimo_rssi
+        return None
 
     # ---------- decisao do clique ----------
     def decidir_clique(self, agora):
@@ -161,10 +178,11 @@ class Agente:
         if not c or c["feito"]:
             return
         c["feito"] = True
+        rssi = self.rssi_recente(agora)
         if self.estado == "FIXO":
-            self.liberar(c["melhor"], "AUTO", "2º clique: volta ao automático")
+            self.liberar(rssi, "AUTO", "2º clique: volta ao automático")
         else:
-            self.liberar(c["melhor"], "FIXO", "clique: crachá no porta-crachá, fica liberado")
+            self.liberar(rssi, "FIXO", "clique: crachá no recipiente, fica liberado")
 
     # ---------- monitoramento (so com o PC liberado) ----------
     def monitorar(self, agora):
@@ -214,7 +232,8 @@ class Agente:
 
         idade = agora - self.ultimo_pacote if self.ultimo_pacote else None
         sinal = "sem sinal" if idade is None or idade > 3 else f"{self.ultimo_rssi:.0f} dBm"
-        print(f"\r{self.estado:<10} sinal: {sinal:<10}", end="", flush=True)
+        rec = "ok" if agora - self.ultimo_recipiente < 3 else "sem sinal"
+        print(f"\r{self.estado:<10} crachá: {sinal:<10} recipiente: {rec:<10}", end="", flush=True)
         if self.tela:
             self.rotulo_sinal.config(text=f"sinal do crachá: {sinal}")
             self.rotulo_msg.config(text=self.msg)
@@ -258,11 +277,13 @@ class Agente:
             self.tela.destroy()
             self.tela = None
         self.hist.clear()
-        self.hist.append((time.time(), rssi))  # o pacote atual conta como "presente"
+        if rssi is not None:
+            self.hist.append((time.time(), rssi))  # o pacote atual conta como "presente"
         self.desde_longe = self.aviso_fim = None
         self.msg = ""
         self.status.publicar(novo_estado.lower(), rssi)
-        print(f"\n>>> PC LIBERADO, modo {novo_estado} ({motivo}; RSSI {rssi:.0f} dBm)")
+        sinal = "sem sinal do crachá" if rssi is None else f"RSSI {rssi:.0f} dBm"
+        print(f"\n>>> PC LIBERADO, modo {novo_estado} ({motivo}; {sinal})")
 
     def abrir_aviso(self):
         if self.aviso:

@@ -26,8 +26,13 @@
 #include <BLEAdvertising.h>
 #include <U8g2lib.h>
 
-const uint16_t ID_CRACHA = 101;           // o 101 e o cracha da demo
-const char* NOME_BLE = "UNIFESP-BADGE";   // o PC procura por este prefixo
+// ===== ESCOLHA O PAPEL DESTA PLACA ANTES DE GRAVAR (17/11/2026) =====
+//   false = CRACHA (Heltec 1): so anuncia o sinal para o PC medir a distancia. O botao NAO faz nada.
+//   true  = RECIPIENTE / porta-cracha (Heltec 2): le o botao e anuncia o contador de cliques ("colocou/tirou").
+const bool SOU_RECIPIENTE = false;
+
+const uint16_t ID_CRACHA = SOU_RECIPIENTE ? 201 : 101;   // 101 = cracha da demo; 201 = recipiente
+const char* NOME_BLE = SOU_RECIPIENTE ? "UNIFESP-HOLDER" : "UNIFESP-BADGE";   // o PC procura por estes nomes
 
 const int PINO_BOTAO = 0;                 // PRG da placa (LOW = apertado)
 const int PINO_BOTAO_EXT = 4;             // push button externo: um lado no GPIO 4, o outro no GND (17/11/2026)
@@ -58,7 +63,7 @@ unsigned long ultimaMudanca = 0;
 void desenhar() {
   tela.clearBuffer();
   tela.setFont(u8g2_font_ncenB10_tr);
-  tela.drawStr(0, 14, "BLE no ar");
+  tela.drawStr(0, 14, SOU_RECIPIENTE ? "RECIPIENTE" : "CRACHA");
   tela.setFont(u8g2_font_6x10_tr);
   tela.drawStr(0, 32, (String(NOME_BLE) + " #" + String(ID_CRACHA)).c_str());
   tela.drawStr(0, 46, ("cliques: " + String(cliques)).c_str());
@@ -116,7 +121,8 @@ void setup() {
 void loop() {
   // Botao com debounce de 50 ms: so vale quando o estado fica estavel por 50 ms
   // Vale o PRG da placa OU o botao externo (qualquer um dos dois e um clique)
-  bool lido = (digitalRead(PINO_BOTAO) == LOW) || (digitalRead(PINO_BOTAO_EXT) == LOW);
+  // No CRACHA o botao e ignorado (lido fica sempre falso); so o RECIPIENTE conta cliques.
+  bool lido = SOU_RECIPIENTE && ((digitalRead(PINO_BOTAO) == LOW) || (digitalRead(PINO_BOTAO_EXT) == LOW));
   if (lido != ultimoLido) { ultimoLido = lido; ultimaMudanca = millis(); }
   if (millis() - ultimaMudanca > 50 && lido != estavaApertado) {
     estavaApertado = lido;
