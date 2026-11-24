@@ -133,3 +133,9 @@ Queda ≈ 7 dB a cada dobra de distância; extrapolando, −65 dBm ≈ 4 m e −
 - **Decisão (a confirmar com a equipe):** no sistema final há **um crachá só** (botão + LoRa + BLE na mesma Heltec) e o gateway na outra. O arranjo "recipiente" de 17/11 (duas placas BLE) sai de cena; o agente passou a contar os cliques pelo contador do **próprio crachá** (`--recipiente 201` reativa o arranjo antigo).
 - **Novidades:** fila persistente (NVS) com reenvio a cada 30 s e bit "fila"; DS1302 acertado pelo ACK do gateway; comando BIPE ponta a ponta (painel → MQTT → gateway → LoRa → crachá → ACK); gateway assina `cmd/+`. OTA por LoRa **não** foi implementado (o gateway devolve `ok:false`; plano B: USB).
 - **Limitação:** não havia `arduino-cli` no notebook, então os `.ino` **não foram compilados** (só o Python foi verificado). Os primeiros erros de compilação, se houver, entram aqui como problemas.
+
+### 7.1 Revisão no mesmo dia: o botão fica no gateway (recipiente)
+- **Pedido da equipe:** o botão fica no gateway, "naquela lógica de ter um recipiente". Escolha: **LoRa mantido**.
+- **Mudança:** o `gateway.ino` virou **gateway + recipiente** (botão GPIO 4/PRG, buzzer GPIO 5, DS1302, BLE `UNIFESP-HOLDER` nº 201 com contador de cliques, fila de pontos na NVS). O clique publica o ponto direto no MQTT e manda ao crachá um aviso LoRa (tipo 3, código 2 = PONTO OK) para ele apitar. O `cracha.ino` ficou só com BLE de sinal + escuta LoRa + buzzer + OLED. O agente do PC voltou a usar o recipiente (`--recipiente 201` é o padrão).
+- **Efeito no requisito:** o LoRa deixa de levar o ponto e passa a levar só confirmações/comandos para o crachá. O ponto vai pelo Wi-Fi do gateway.
+- **Riscos a observar na bancada:** Wi-Fi e BLE na mesma placa (dividem a antena 2,4 GHz; se o anúncio BLE falhar, é aqui); tamanho do programa; ainda **não compilado**.

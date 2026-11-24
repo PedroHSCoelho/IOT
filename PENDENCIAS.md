@@ -29,8 +29,8 @@ A **parte B (caminho até o banco, testes 6 e 7) NÃO começou**: só definimos 
 
 ---
 
-**24/11/2026 — código final escrito, NÃO compilado nem gravado:** `firmware/cracha/cracha.ino`, `firmware/gateway/gateway.ino`
-e agente do PC ajustado (clique vem do próprio crachá; ver diário seção 7). Próximo: compilar no Arduino IDE (PC do Flávio),
+**24/11/2026 — código final escrito, NÃO compilado nem gravado:** `firmware/gateway/gateway.ino` (**gateway + recipiente: tem o botão, buzzer, DS1302 e BLE `UNIFESP-HOLDER` 201**),
+`firmware/cracha/cracha.ino` (só BLE de sinal + escuta LoRa + buzzer) e agente do PC (`--recipiente 201`, padrão); ver diário seções 7 e 7.1. Próximo: compilar no Arduino IDE (PC do Flávio),
 gravar (gateway numa Heltec, crachá na outra) e rodar o roteiro de testes: ponto → painel, sem rede → fila → reenvio, BIPE, desbloqueio BLE.
 
 ## 1. O que está PRONTO e verificado
@@ -131,7 +131,7 @@ Metas do cronograma: protoboard validada até 09/11 (**já passou**), layout da 
 - O status do PC (`unifesp/ponto/pc/{badge}/status`) atualiza o dispositivo `pc-lab-01` (ou o `id` enviado no JSON); o do gateway atualiza `gw-lab`.
 - (17/11/2026, proposta) **Pinagem:** botão GPIO 4, buzzer GPIO 5, LED externo opcional GPIO 6 (ver `hardware/PINAGEM.md`); confirmar no Teste 4 antes do layout.
 - (17/11/2026, proposta) **Broker no PC do Flávio** (porta 1883 liberada uma vez, com administrador) e **Node-RED no notebook do Pedro**; gerar o fluxo com `MQTT_HOST=<IP do Flávio> npm run gerar-fluxo`. Alternativa: tudo no PC do Flávio, copiando o `.env` à mão. Falta confirmar com a equipe.
-- (24/11/2026, proposta) **Versão final = um crachá (botão+LoRa+BLE) e um gateway.** O recipiente de 17/11 sai; o agente conta cliques pelo contador do crachá. Confirmar com a equipe.
+- (24/11/2026, decidido pela equipe) **Versão final = crachá (BLE de sinal + buzzer) e gateway+recipiente (botão, buzzer, DS1302, Wi-Fi/MQTT, BLE de cliques).** O ponto vai direto ao MQTT; o LoRa leva só o aviso "ponto OK" e o BIPE para o crachá.
 - (17/11/2026, SUPERADO em 24/11 se confirmado) **Duas placas:** Heltec 1 = crachá (BLE, sem botão), Heltec 2 = recipiente com o botão (BLE com contador de cliques; depois será a parte LoRa do recipiente). O agente ouve os dois.
 - (17/11/2026, aprovado pela equipe) **Agente v3 (vale este):** automático por sinal (chegar perto desbloqueia com pico > −60; sair bloqueia com pico < −70 por 5 s + aviso de 5 s); 1º clique = modo FIXO (liberado até o 2º clique, sem medir BLE); 2º clique volta ao automático; cada clique alterna. `--seg-ausente` agora 5 s.
 - (17/11/2026, superado pela v3) **Ciclo do agente:** cliques são um interruptor; colocar o crachá libera sem BLE e nunca é ignorado; 2º clique (tirar) arma; longe bloqueia; repete. `--liberar` foi removido. Sem o 2º clique, afastar não bloqueia. Substitui a decisão de 12/11 sobre o 2º clique.

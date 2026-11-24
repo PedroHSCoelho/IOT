@@ -14,6 +14,12 @@
 | 35 | LED branco | Usado nos testes (testado) |
 | 36 | Vext (LOW liga o OLED e o conector Vext) | Usado nos testes (testado) |
 
+## Quem leva o quê (arranjo final, 24/11/2026)
+
+- **Gateway + recipiente (Heltec 2):** botão (GPIO 4), buzzer (GPIO 5), DS1302 (40/41/42), Wi-Fi/MQTT, LoRa, BLE `UNIFESP-HOLDER`.
+- **Crachá (Heltec 1):** só o buzzer (GPIO 5), LoRa (escuta) e BLE `UNIFESP-BADGE`. Sem botão e sem DS1302.
+- A tabela abaixo vale para a placa que recebe o componente; a PCI do gateway leva botão, buzzer e DS1302, a do crachá só o buzzer.
+
 ## Componentes externos (a ligar na PCI)
 
 | Componente | Pino do componente | GPIO | Situação | Observação |

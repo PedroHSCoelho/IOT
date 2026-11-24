@@ -1,9 +1,10 @@
 """Agente do PC (versao 3, 17/11/2026): o SINAL (BLE) controla a tela; o BOTAO "prende" o PC liberado.
 
-VERSAO FINAL: um unico radio BLE, o proprio CRACHA ("UNIFESP-BADGE", numero 101, firmware/cracha). O PC mede
-o RSSI (distancia) e o contador de cliques do anuncio diz que o botao do cracha foi apertado.
-(Arranjo antigo de 2 placas, ainda aceito com --recipiente 201: o RECIPIENTE "UNIFESP-HOLDER" tem o botao e o
- cracha so anuncia o sinal.)
+VERSAO FINAL (24/11/2026): dois radios BLE, como no arranjo de 17/11:
+  CRACHA     ("UNIFESP-BADGE", numero 101, firmware/cracha): so anuncia o sinal; o PC mede o RSSI (distancia).
+  RECIPIENTE ("UNIFESP-HOLDER", numero 201, firmware/gateway): e tambem o GATEWAY e tem o botao; o contador de
+             cliques no anuncio dele diz "colocou/tirou". O PC conta os cliques e NAO usa o RSSI dele.
+(Com --recipiente 0 o clique passa a vir do contador do proprio cracha, para quem usar so uma placa.)
 
 Dois modos, como um cracha que ora esta no porta-cracha, ora esta com a pessoa:
   AUTOMATICO (sem clique)  o sinal manda:
@@ -51,8 +52,8 @@ ID_EMPRESA = 0xFFFF         # id generico usado nos dados do fabricante (ver fir
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--badge", type=int, default=101, help="numero do cracha (mede a distancia)")
-ap.add_argument("--recipiente", type=int, default=0,
-                help="numero do recipiente/porta-cracha (ex.: 201). 0 = sem recipiente: o clique vem do proprio cracha (versao final)")
+ap.add_argument("--recipiente", type=int, default=201,
+                help="numero do recipiente/gateway com o botao (padrao 201). 0 = sem recipiente: o clique vem do proprio cracha")
 ap.add_argument("--liberar", type=float, default=-60, help="automatico: bloqueado desbloqueia quando um pacote passa disto (dBm)")
 ap.add_argument("--manter", type=float, default=-70, help="automatico liberado: 'longe' = melhor RSSI da janela abaixo disto (dBm)")
 ap.add_argument("--janela", type=float, default=3, help="segundos considerados para o melhor RSSI (pico)")
