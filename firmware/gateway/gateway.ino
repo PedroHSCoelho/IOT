@@ -44,7 +44,9 @@ const bool TEM_DS1302 = true;              // false = sem relogio: a hora do pon
 
 // LoRa (identico ao cracha)
 const uint32_t FREQ_HZ = 915000000, LARGURA_HZ = 125000;
-const int SF = 7, CR = 5, SYNC_WORD = 0x12, POTENCIA = 14;
+// SYNC_WORD proprio da equipe (0x12 e o padrao dos exemplos: outros grupos usam e a gente recebe o lixo deles).
+// DEVE ser igual no gateway e no cracha.
+const int SF = 7, CR = 5, SYNC_WORD = 0x2B, POTENCIA = 14;
 
 // Pinos
 const int PINO_BOTAO = 4;                  // botao de ponto: um lado no GPIO 4, o outro no GND (resistor interno)
@@ -428,7 +430,13 @@ void processarPacote() {
   uint8_t b[32];
   if (len > sizeof(b)) len = sizeof(b);
   int estado = radio.readData(b, len);
-  if (estado != RADIOLIB_ERR_NONE || len != 11 || b[0] != 1) { ultimoEvento = "pacote invalido"; return; }
+  if (estado != RADIOLIB_ERR_NONE || len != 11 || b[0] != 1) {
+    // Quase sempre e OUTRO equipamento LoRa por perto (ou ruido): nao e nosso. Ignora e so registra a causa.
+    Serial.printf("LoRa ignorado: estado=%d tamanho=%u RSSI=%.0f
+", estado, (unsigned)len, radio.getRSSI());
+    ultimoEvento = estado == RADIOLIB_ERR_CRC_MISMATCH ? "ruido LoRa (CRC)" : "LoRa de outro sistema";
+    return;
+  }
   uint16_t badge = b[2] | (b[3] << 8), seq = b[4] | (b[5] << 8);
   ultimoRssi = radio.getRSSI(); ultimoSnr = radio.getSNR(); temQualidade = true;
 

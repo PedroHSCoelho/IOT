@@ -31,7 +31,7 @@ const char* NOME_BLE = "UNIFESP-BADGE";    // o agente do PC procura por este no
 const bool BUZZER_PASSIVO = false;         // false = buzzer ATIVO; true = passivo
 
 const uint32_t FREQ_HZ = 915000000, LARGURA_HZ = 125000;     // identico ao gateway
-const int SF = 7, CR = 5, SYNC_WORD = 0x12, POTENCIA = 14;
+const int SF = 7, CR = 5, SYNC_WORD = 0x2B, POTENCIA = 14;   // proprio da equipe; igual ao do gateway
 
 const int PINO_BUZZER = 5;
 const int PINO_VEXT = 36, PINO_LED = 35;

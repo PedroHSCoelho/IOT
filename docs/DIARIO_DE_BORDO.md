@@ -143,3 +143,8 @@ Queda ≈ 7 dB a cada dobra de distância; extrapolando, −65 dBm ≈ 4 m e −
 ### 7.2 Versão final fechada
 - Removido o PRG como clique no gateway (só o botão externo, GPIO 4). `README.md` e `PENDENCIAS.md` atualizados; criado `docs/ROTEIRO_FINAL.md` (montagem, gravação, testes e entrega). `firmware/testes/` fica como histórico.
 - **Gateway compilou** no PC do Flávio (lição: o `config.h` não é biblioteca; é copiado de `config.example.h` na pasta do sketch).
+
+### 7.3 Problema: "Pacote inválido" no OLED do gateway (24/11/2026)
+- **Sintoma:** com `W:ok M:ok`, o OLED mostra "Pacote inválido" sem nenhum crachá transmitindo.
+- **Causa (provável):** o rádio recebeu LoRa de outro sistema ou ruído; nossa configuração usava o sync word 0x12, padrão dos exemplos, que outros grupos também usam.
+- **Solução:** sync word próprio da equipe (0x2B) no gateway e no crachá (os dois precisam ser regravados juntos) e log da causa no Monitor Serial (`LoRa ignorado: estado=... tamanho=... RSSI=...`).
