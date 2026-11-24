@@ -148,3 +148,8 @@ Queda ≈ 7 dB a cada dobra de distância; extrapolando, −65 dBm ≈ 4 m e −
 - **Sintoma:** com `W:ok M:ok`, o OLED mostra "Pacote inválido" sem nenhum crachá transmitindo.
 - **Causa (provável):** o rádio recebeu LoRa de outro sistema ou ruído; nossa configuração usava o sync word 0x12, padrão dos exemplos, que outros grupos também usam.
 - **Solução:** sync word próprio da equipe (0x2B) no gateway e no crachá (os dois precisam ser regravados juntos) e log da causa no Monitor Serial (`LoRa ignorado: estado=... tamanho=... RSSI=...`).
+
+### 7.4 Problema: PRG não bate ponto no arranjo final (24/11/2026)
+- **Sintoma:** apertar o PRG não registrava ponto à distância (LoRa → gateway → banco).
+- **Causa:** no firmware final o PRG não é mais botão de ponto (o botão é o externo no gateway); o crachá final só anuncia BLE e escuta LoRa. O caminho antigo (PRG no crachá → LoRa) é o teste 07.
+- **Diagnóstico em duas metades:** (A) botão externo do gateway → MQTT → banco; (B) LoRa nos dois sentidos pelo BIPE do painel; (C) teste 07 (sync word atualizado para 0x2B) para o ponto por LoRa.

@@ -17,7 +17,7 @@
 const uint16_t ID_CRACHA = 102;
 
 const uint32_t FREQ_HZ = 915000000, LARGURA_HZ = 125000;
-const int SF = 7, CR = 5, SYNC_WORD = 0x12, POTENCIA = 14;
+const int SF = 7, CR = 5, SYNC_WORD = 0x2B, POTENCIA = 14;   // igual ao do gateway final (era 0x12 ate 24/11/2026)
 
 const int PINO_PRG = 0;                     // botao "PRG" da placa (LOW quando apertado)
 const int PINO_VEXT = 36, PINO_LED = 35;
