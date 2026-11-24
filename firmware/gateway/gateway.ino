@@ -47,8 +47,7 @@ const uint32_t FREQ_HZ = 915000000, LARGURA_HZ = 125000;
 const int SF = 7, CR = 5, SYNC_WORD = 0x12, POTENCIA = 14;
 
 // Pinos
-const int PINO_BOTAO = 4;                  // um lado no GPIO 4, o outro no GND
-const int PINO_PRG = 0;                    // PRG da placa tambem vale como clique
+const int PINO_BOTAO = 4;                  // botao de ponto: um lado no GPIO 4, o outro no GND (resistor interno)
 const int PINO_BUZZER = 5;
 const int PINO_VEXT = 36, PINO_LED = 35;
 const int PINO_CLK = 40, PINO_DAT = 41, PINO_RST_RTC = 42;
@@ -376,7 +375,7 @@ void aoClicar() {
   }
 }
 
-bool botaoApertado() { return digitalRead(PINO_BOTAO) == LOW || digitalRead(PINO_PRG) == LOW; }
+bool botaoApertado() { return digitalRead(PINO_BOTAO) == LOW; }
 
 // ====================================================================
 // Comandos do painel (MQTT -> LoRa) e pacotes recebidos
@@ -477,7 +476,6 @@ void setup() {
   pinMode(PINO_LED, OUTPUT);
   pinMode(PINO_BUZZER, OUTPUT); digitalWrite(PINO_BUZZER, LOW);
   pinMode(PINO_BOTAO, INPUT_PULLUP);
-  pinMode(PINO_PRG, INPUT_PULLUP);
   tela.begin();
   ultimoEvento = "iniciando...";
   desenhar();

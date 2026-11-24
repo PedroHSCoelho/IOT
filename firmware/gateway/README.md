@@ -3,7 +3,7 @@
 Arquivo: `gateway.ino`. Copie `config.example.h` para `config.h` (Wi-Fi **2,4 GHz** e IP do PC do broker; **não vai ao Git**).
 Bibliotecas: **PubSubClient**, **RadioLib 8.x**, **U8g2**. **Nunca ligar sem a antena.**
 
-Esta placa é o **recipiente** (porta-cracha) **e** o gateway; ela tem o **botão** (GPIO 4 ou PRG), o **buzzer** (GPIO 5) e o **DS1302** (40/41/42).
+Esta placa é o **recipiente** (porta-cracha) **e** o gateway; ela tem o **botão** (GPIO 4, push button externo), o **buzzer** (GPIO 5) e o **DS1302** (40/41/42).
 Um clique: bipe curto → contador de cliques do BLE (`UNIFESP-HOLDER` nº 201; o PC libera/prende) → ponto do badge 101 na **fila** (NVS) →
 publica em `unifesp/ponto/evento` (`origem:"botao"`). Deu certo: 2 bipes aqui e o **crachá apita por LoRa**. Sem rede: 3 bipes graves,
 o ponto fica na fila e é reenviado a cada 10 s (`fila=true`). Hora do ponto: DS1302 → NTP; o DS1302 é acertado pelo NTP.

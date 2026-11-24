@@ -34,11 +34,13 @@ cloud/db/        schema, funções, views, usuários/RLS, seed e testes (SQL)
 cloud/servidor/  broker MQTT (aedes), gerador do fluxo Node-RED, painel
 diagrama/        diagrama de blocos
 docs/            diário de bordo e fluxo do BLE/bloqueio
-firmware/testes/ testes na protoboard: 01 OLED+LED, 02 ping-pong LoRa, 03 relógio DS1302, 05 BLE (contador de
-                 cliques), 06 gateway MQTT, 07 crachá de teste pelo botão PRG
+firmware/gateway/ FINAL: gateway + recipiente (botão, buzzer, DS1302, Wi-Fi/MQTT, LoRa, BLE de cliques)
+firmware/cracha/  FINAL: crachá (BLE de sinal, escuta LoRa, buzzer, OLED)
+firmware/testes/ histórico dos testes de protoboard (01 OLED, 02 LoRa, 03 DS1302, 05 BLE, 06/07); o código final os absorveu
+hardware/        pinagem (PINAGEM.md); KiCad da PCI
 pc-agent/        agente_bloqueio.py (libera/bloqueia a tela) e teste_ble_rssi.py (só mede o RSSI)
 ```
-Ainda por criar: `firmware/cracha`, `firmware/gateway`, `hardware/`, `enclosure/`.
+Ainda por criar: KiCad da PCI e `enclosure/` (caixas 3D). Roteiro de montagem e testes: `docs/ROTEIRO_FINAL.md`.
 
 ## Segredos
 `cloud/.env` **não** vai ao Git (modelo em `cloud/.env.example`). Futuramente, o mesmo vale para `config.h`.

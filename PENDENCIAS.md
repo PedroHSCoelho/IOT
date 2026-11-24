@@ -33,6 +33,8 @@ A **parte B (caminho até o banco, testes 6 e 7) NÃO começou**: só definimos 
 `firmware/cracha/cracha.ino` (só BLE de sinal + escuta LoRa + buzzer) e agente do PC (`--recipiente 201`, padrão); ver diário seções 7 e 7.1. Próximo: compilar no Arduino IDE (PC do Flávio),
 gravar (gateway numa Heltec, crachá na outra) e rodar o roteiro de testes: ponto → painel, sem rede → fila → reenvio, BIPE, desbloqueio BLE.
 
+**Versão final fechada em 24/11/2026:** só o botão externo (GPIO 4) vale como clique (PRG removido); roteiro completo em `docs/ROTEIRO_FINAL.md`.
+
 ## 1. O que está PRONTO e verificado
 
 | Parte | Estado | Onde |

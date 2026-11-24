@@ -139,3 +139,7 @@ Queda ≈ 7 dB a cada dobra de distância; extrapolando, −65 dBm ≈ 4 m e −
 - **Mudança:** o `gateway.ino` virou **gateway + recipiente** (botão GPIO 4/PRG, buzzer GPIO 5, DS1302, BLE `UNIFESP-HOLDER` nº 201 com contador de cliques, fila de pontos na NVS). O clique publica o ponto direto no MQTT e manda ao crachá um aviso LoRa (tipo 3, código 2 = PONTO OK) para ele apitar. O `cracha.ino` ficou só com BLE de sinal + escuta LoRa + buzzer + OLED. O agente do PC voltou a usar o recipiente (`--recipiente 201` é o padrão).
 - **Efeito no requisito:** o LoRa deixa de levar o ponto e passa a levar só confirmações/comandos para o crachá. O ponto vai pelo Wi-Fi do gateway.
 - **Riscos a observar na bancada:** Wi-Fi e BLE na mesma placa (dividem a antena 2,4 GHz; se o anúncio BLE falhar, é aqui); tamanho do programa; ainda **não compilado**.
+
+### 7.2 Versão final fechada
+- Removido o PRG como clique no gateway (só o botão externo, GPIO 4). `README.md` e `PENDENCIAS.md` atualizados; criado `docs/ROTEIRO_FINAL.md` (montagem, gravação, testes e entrega). `firmware/testes/` fica como histórico.
+- **Gateway compilou** no PC do Flávio (lição: o `config.h` não é biblioteca; é copiado de `config.example.h` na pasta do sketch).
