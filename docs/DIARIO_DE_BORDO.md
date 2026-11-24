@@ -127,3 +127,9 @@ Queda ≈ 7 dB a cada dobra de distância; extrapolando, −65 dBm ≈ 4 m e −
 - Avisar o professor da mudança de requisito (desbloqueio pelo botão).
 - Bateria CR2032 e demais peças (relógio, botão, buzzer): conferir a chegada.
 - Testes 6 e 7 (caminho até o banco) ficam para a próxima sessão no laboratório.
+
+## 7. Sessão de 24/11/2026: versão final dos códigos (ainda sem gravar nas placas)
+- **O que foi feito:** escritos `firmware/cracha/cracha.ino` e `firmware/gateway/gateway.ino` (finais, a partir dos testes 03, 05, 06 e 07) e ajustado `pc-agent/agente_bloqueio.py`.
+- **Decisão (a confirmar com a equipe):** no sistema final há **um crachá só** (botão + LoRa + BLE na mesma Heltec) e o gateway na outra. O arranjo "recipiente" de 17/11 (duas placas BLE) sai de cena; o agente passou a contar os cliques pelo contador do **próprio crachá** (`--recipiente 201` reativa o arranjo antigo).
+- **Novidades:** fila persistente (NVS) com reenvio a cada 30 s e bit "fila"; DS1302 acertado pelo ACK do gateway; comando BIPE ponta a ponta (painel → MQTT → gateway → LoRa → crachá → ACK); gateway assina `cmd/+`. OTA por LoRa **não** foi implementado (o gateway devolve `ok:false`; plano B: USB).
+- **Limitação:** não havia `arduino-cli` no notebook, então os `.ino` **não foram compilados** (só o Python foi verificado). Os primeiros erros de compilação, se houver, entram aqui como problemas.
