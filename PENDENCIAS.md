@@ -35,6 +35,8 @@ gravar (gateway numa Heltec, crachá na outra) e rodar o roteiro de testes: pont
 
 **Versão final fechada em 24/11/2026:** só o botão externo (GPIO 4) vale como clique (PRG removido); roteiro completo em `docs/ROTEIRO_FINAL.md`.
 
+**24/11/2026 (correção):** o crachá **bate ponto remoto por LoRa** (PRG/GPIO 4, fila, ACK) e o gateway também tem o botão dele; `seq` separados (crachá 1–32767, gateway 32768+). Ainda não testado no hardware.
+
 ## 1. O que está PRONTO e verificado
 
 | Parte | Estado | Onde |

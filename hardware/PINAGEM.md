@@ -17,8 +17,8 @@
 ## Quem leva o quê (arranjo final, 24/11/2026)
 
 - **Gateway + recipiente (Heltec 2):** botão (GPIO 4), buzzer (GPIO 5), DS1302 (40/41/42), Wi-Fi/MQTT, LoRa, BLE `UNIFESP-HOLDER`.
-- **Crachá (Heltec 1):** só o buzzer (GPIO 5), LoRa (escuta) e BLE `UNIFESP-BADGE`. Sem botão e sem DS1302.
-- A tabela abaixo vale para a placa que recebe o componente; a PCI do gateway leva botão, buzzer e DS1302, a do crachá só o buzzer.
+- **Crachá (Heltec 1):** botão (PRG da placa e/ou externo no GPIO 4), buzzer (GPIO 5), DS1302 opcional (40/41/42), LoRa e BLE `UNIFESP-BADGE`; bate o ponto remoto por LoRa.
+- A tabela abaixo vale para a placa que recebe o componente; as duas PCIs levam botão, buzzer e DS1302 (mesmo desenho).
 
 ## Componentes externos (a ligar na PCI)
 

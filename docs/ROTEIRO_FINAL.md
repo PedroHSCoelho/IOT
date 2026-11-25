@@ -4,9 +4,9 @@ Cada fase só começa quando a anterior passa. Ao fim de cada uma: `git pull`, c
 
 ## Arranjo final
 - **Gateway + recipiente (Heltec 2):** botão (GPIO 4 ↔ GND), buzzer (GPIO 5), DS1302 (CLK 40, DAT 41, RST 42), Wi-Fi/MQTT, LoRa, BLE `UNIFESP-HOLDER` nº 201. Firmware: `firmware/gateway/gateway.ino`.
-- **Crachá (Heltec 1):** buzzer (GPIO 5), LoRa (escuta), BLE `UNIFESP-BADGE` nº 101. Firmware: `firmware/cracha/cracha.ino`.
+- **Crachá (Heltec 1):** botão (PRG da placa e/ou externo GPIO 4), buzzer (GPIO 5), DS1302 opcional, LoRa, BLE `UNIFESP-BADGE` nº 101. Simula a pessoa **num local remoto sem internet**: bate o ponto por LoRa. Firmware: `firmware/cracha/cracha.ino`.
 - **PC:** `pc-agent/agente_bloqueio.py` (libera/bloqueia a tela; **não registra ponto**). **Servidor:** broker + Node-RED + Supabase.
-- Caminho do ponto: botão → gateway → Wi-Fi/MQTT → Node-RED → Supabase → painel. LoRa leva só o aviso "ponto OK" e o BIPE ao crachá.
+- Dois caminhos do ponto (badge 101): **botão do gateway** → Wi-Fi/MQTT → Node-RED → Supabase → painel; e **botão do crachá** → LoRa (ACK, fila) → gateway → MQTT → … → painel. O PC só libera/bloqueia a tela.
 
 ## 1. Preparar o PC do Flávio (uma vez)
 Arduino IDE com a placa **Heltec ESP32** (URL em Preferências: `https://resource.heltec.cn/download/package_heltec_esp32_index.json`); bibliotecas **U8g2**, **RadioLib 8.x**, **PubSubClient**. Cabo USB-C de dados. Para gravar à força: segure PRG, aperte RST, solte PRG.
@@ -18,7 +18,7 @@ Arduino IDE com a placa **Heltec ESP32** (URL em Preferências: `https://resourc
 4. Teste sem placas: `npm run publicar-teste -- botao 102`; o ponto aparece no painel. Apagar depois (`DELETE FROM evento WHERE seq > 0 ...`).
 
 ## 3. Montagem (placas desligadas, antenas conectadas)
-Gateway: botão GPIO 4 ↔ GND; buzzer no GPIO 5 (ativo: 1 kΩ → base de NPN, buzzer entre 3,3 V e coletor; passivo: `BUZZER_PASSIVO = true`); DS1302 em 3V3/GND/40/41/42 (nunca 5 V) com a CR2032. Crachá: só o buzzer.
+Gateway: botão GPIO 4 ↔ GND; buzzer no GPIO 5 (ativo: 1 kΩ → base de NPN, buzzer entre 3,3 V e coletor; passivo: `BUZZER_PASSIVO = true`); DS1302 em 3V3/GND/40/41/42 (nunca 5 V) com a CR2032. Crachá: botão (use o PRG da placa ou ligue um externo no GPIO 4), buzzer e, se tiver, outro DS1302 (ou o mesmo módulo só no gateway).
 
 ## 4. Gravar
 1. **Gateway:** em `firmware/gateway`, copiar `config.example.h` para `config.h` (SSID/senha 2,4 GHz e IP do broker). Gravar `gateway.ino`. OLED `W:ok M:ok`; painel "Gateway: online".
@@ -26,7 +26,8 @@ Gateway: botão GPIO 4 ↔ GND; buzzer no GPIO 5 (ativo: 1 kΩ → base de NPN, 
 3. Sem DS1302 ligado, `TEM_DS1302 = false` no gateway (o NTP carimba).
 
 ## 5. Testes ponta a ponta
-1. Apertar o botão: 1 bipe → "PONTO OK" → 2 bipes no gateway **e** no crachá → ponto no painel (origem "Botão"); cliques alternam CHEGADA/SAÍDA.
+0. **Ponto remoto:** apertar o PRG no **crachá**: 1 bipe, "enviando", "PONTO OK" no OLED e 2 bipes (crachá e gateway); o ponto aparece no painel. Afaste o crachá/desligue o gateway: 3 bipes graves e "SEM ACK: na fila"; ao voltar o alcance, em até 30 s o ponto chega com a marca de fila.
+1. Apertar o botão do gateway: 1 bipe → "PONTO OK" → 2 bipes no gateway **e** no crachá → ponto no painel (origem "Botão"); cliques alternam CHEGADA/SAÍDA.
 2. **Fila:** desligar o hotspot/broker, apertar (3 bipes graves, "SEM REDE: na fila"), religar: em até 10 s o ponto chega com a marca de fila, sem perda nem duplicata.
 3. **BIPE:** botão no painel; o crachá faz 1 bipe longo e o comando fica `CONFIRMADO`.
 4. **Relógio:** o DS1302 é acertado pelo NTP; conferir o erro (< 2 s).

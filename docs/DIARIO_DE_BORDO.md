@@ -153,3 +153,8 @@ Queda ≈ 7 dB a cada dobra de distância; extrapolando, −65 dBm ≈ 4 m e −
 - **Sintoma:** apertar o PRG não registrava ponto à distância (LoRa → gateway → banco).
 - **Causa:** no firmware final o PRG não é mais botão de ponto (o botão é o externo no gateway); o crachá final só anuncia BLE e escuta LoRa. O caminho antigo (PRG no crachá → LoRa) é o teste 07.
 - **Diagnóstico em duas metades:** (A) botão externo do gateway → MQTT → banco; (B) LoRa nos dois sentidos pelo BIPE do painel; (C) teste 07 (sync word atualizado para 0x2B) para o ponto por LoRa.
+
+### 7.5 Correção de lógica: o crachá bate ponto remoto por LoRa (24/11/2026)
+- **Correção da equipe:** a lógica do arranjo estava errada; o crachá deve simular uma pessoa batendo ponto **remotamente, num local sem internet, via LoRa**. O `cracha.ino` voltou a ter botão (PRG da placa e GPIO 4), fila persistente, ACK com 3 tentativas, DS1302 opcional e hora certa pelo ACK do gateway; mantém BLE de sinal e os avisos do gateway.
+- **Problema evitado:** o banco tem `UNIQUE (badge_id, origem, seq)`. Crachá e botão do gateway usam o badge 101; para não colidirem, o crachá usa `seq` 1–32767 e o gateway 32768 em diante.
+- **Gateway:** o ponto LoRa do crachá é publicado, confirmado com ACK (hora NTP) e o gateway também bipa.

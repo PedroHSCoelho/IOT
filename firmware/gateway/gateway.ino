@@ -16,7 +16,8 @@
 //   - Last Will (offline, retained) e "estou vivo" a cada 30 s em unifesp/ponto/gateway/status.
 //   - Comando BIPE do painel (unifesp/ponto/cmd/{badge}) -> LoRa -> cracha; ACK em .../cmd/{badge}/ack.
 //     OTA nao existe por LoRa: responde ok=false (plano B: USB).
-//   - Pacote LoRa de ponto (tipo 1) do cracha de TESTE antigo (firmware/testes/07) ainda e aceito.
+//   - PONTO REMOTO: o botao do CRACHA (local sem internet) manda o ponto por LoRa (tipo 1); o gateway publica no
+//     MQTT, responde ACK com a hora certa e bipa. Se nao conseguir publicar, NAO da ACK (o cracha refaz).
 //
 // Pacote LoRa de 11 bytes: [0]=versao(1) [1]=tipo [2-3]=badge [4-5]=seq ou id [6-9]=hora Unix UTC [10]=flags
 //   1 = ponto (cracha de teste)  2 = ACK do ponto  3 = comando ([6]=1 BIPE longo, 2 = PONTO OK)  4 = ACK do comando
@@ -100,6 +101,10 @@ String ultimoEvento = "(nenhum ainda)";
 unsigned long fimRapido = 0, ultimoStatus = 0, ultimoDesenho = 0, ultimaTentativa = 0, ultimoReenvio = 0, ultimoSyncRtc = 0;
 
 struct Comando { bool ativo; uint32_t id; uint16_t badge; int tentativas; unsigned long proximo; } cmd = { false, 0, 0, 0, 0 };
+
+// Numero de sequencia do botao do GATEWAY: sempre >= 32768. O cracha usa 1..32767 (mesmo badge 101), e o banco
+// recusa (badge, origem, seq) repetido; faixas separadas evitam que um ponto "apague" o outro.
+uint16_t seqGw() { return 0x8000 | (seqAtual & 0x7FFF); }
 
 bool horaValida() { return time(nullptr) > 1700000000; }   // NTP ja acertou (passou de nov/2023)
 
@@ -363,14 +368,14 @@ void aoClicar() {
   seqAtual++;
   memoria.putUShort("seq", seqAtual);                 // grava ANTES de enviar: nunca reusa um numero
   if (nFila >= TAM_FILA) { avisar("FILA CHEIA: descartei o mais antigo"); tirarDaFila(0); }
-  fila[nFila++] = { seqAtual, lerEpochRtc(), 0 };     // hora 0 = sem relogio; publicarPonto usa o NTP
+  fila[nFila++] = { seqGw(), lerEpochRtc(), 0 };     // hora 0 = sem relogio; publicarPonto usa o NTP
   salvarFila();
 
   int ok = processarFila();
   if (nFila == 0 && ok > 0) {
-    avisar("PONTO OK seq " + String(seqAtual));
+    avisar("PONTO OK seq " + String(seqGw()));
     bipeOk();
-    avisarCracha(seqAtual, 2);                        // o cracha tambem apita: ponto confirmado
+    avisarCracha(seqGw(), 2);                         // o cracha tambem apita: ponto confirmado
   } else {
     avisar("SEM REDE: na fila");
     bipeFalha();
@@ -450,7 +455,7 @@ void processarPacote() {
   }
   if (b[1] != 1) { ultimoEvento = "tipo desconhecido"; return; }
 
-  // Ponto vindo de um cracha de TESTE (firmware/testes/07): publica e responde ACK
+  // PONTO REMOTO vindo do botao do cracha: publica e responde ACK (com a hora certa)
   uint32_t horaCracha = b[6] | (b[7] << 8) | (b[8] << 16) | ((uint32_t)b[9] << 24);
   if (publicarPonto(badge, seq, horaCracha, b[10] & 1, true)) {
     ultimoEvento = "cracha " + String(badge) + " seq " + String(seq) + " OK";
@@ -459,6 +464,7 @@ void processarPacote() {
     delay(100);
     radio.transmit(ack, 11);
     publicarStatus();
+    bipeOk();                                           // o gateway tambem confirma o ponto remoto
   } else {
     ultimoEvento = "sem MQTT/hora: sem ACK";
   }
@@ -555,7 +561,7 @@ void loop() {
 
   if (nFila > 0 && mqtt.connected() && millis() - ultimoReenvio > REENVIO_MS) {
     int ok = processarFila();
-    if (ok > 0) { avisar(String(ok) + " ponto(s) da fila enviado(s)"); bipeOk(); avisarCracha(seqAtual, 2); }
+    if (ok > 0) { avisar(String(ok) + " ponto(s) da fila enviado(s)"); bipeOk(); avisarCracha(seqGw(), 2); }
   }
   if (millis() - ultimoSyncRtc > 600000UL || (ultimoSyncRtc == 0 && horaValida())) sincronizarRelogio();   // a cada 10 min
   if (mqtt.connected() && millis() - ultimoStatus > STATUS_MS) publicarStatus();
