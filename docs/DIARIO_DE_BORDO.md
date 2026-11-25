@@ -158,3 +158,10 @@ Queda ≈ 7 dB a cada dobra de distância; extrapolando, −65 dBm ≈ 4 m e −
 - **Correção da equipe:** a lógica do arranjo estava errada; o crachá deve simular uma pessoa batendo ponto **remotamente, num local sem internet, via LoRa**. O `cracha.ino` voltou a ter botão (PRG da placa e GPIO 4), fila persistente, ACK com 3 tentativas, DS1302 opcional e hora certa pelo ACK do gateway; mantém BLE de sinal e os avisos do gateway.
 - **Problema evitado:** o banco tem `UNIQUE (badge_id, origem, seq)`. Crachá e botão do gateway usam o badge 101; para não colidirem, o crachá usa `seq` 1–32767 e o gateway 32768 em diante.
 - **Gateway:** o ponto LoRa do crachá é publicado, confirmado com ACK (hora NTP) e o gateway também bipa.
+
+### 7.6 Fim da sessão de 24/11/2026: onde paramos
+- **Feito hoje (software):** versão final dos códigos (`firmware/gateway`, `firmware/cracha`, agente do PC), roteiro final (`docs/ROTEIRO_FINAL.md`), sync word próprio 0x2B, seq separados (crachá 1–32767, gateway 32768+), teste 07 atualizado.
+- **Feito hoje (bancada, relato da equipe):** o gateway compilou e gravou (lição: o `config.h` não é biblioteca, é copiado de `config.example.h` na pasta do sketch); Wi-Fi e MQTT ok; "Pacote inválido" resolvido com o sync word próprio; o resto do roteiro "deu certo".
+- **Linha do tempo das decisões:** 1) crachá com tudo (botão+LoRa+BLE) e gateway; 2) pedido de botão no gateway/recipiente (escolha: LoRa mantido) → gateway+recipiente com botão, crachá só sinal; 3) **correção da equipe:** o crachá deve bater ponto **remoto via LoRa** (local sem internet) → botão PRG volta no crachá, mantendo o botão do gateway.
+- **Não testado ainda:** ponto remoto crachá → LoRa → gateway → banco; fila; BIPE; agente do PC com o gateway final (Wi-Fi + BLE); metas de desempenho. O firmware novo do crachá (commit `3e99bec`) ainda não foi compilado nem gravado.
+- **Retomar por:** `PENDENCIAS.md` seção 0 (passos em ordem).

@@ -9,33 +9,33 @@
 
 ---
 
-## 0. RETOMADA: de onde continuar (fim da sessão de 17/11/2026)
+## 0. RETOMADA: de onde continuar (fim da sessão de 24/11/2026)
 
-**Como retomar:** abrir o Claude Code neste diretório e dizer "continue o projeto". Ele lê `CLAUDE.md` → este arquivo → `docs/DIARIO_DE_BORDO.md`. Antes de qualquer coisa: `git pull`.
+**Como retomar:** abrir o Claude Code neste diretório e dizer "continue o projeto". Ele lê `CLAUDE.md` → este arquivo → `docs/DIARIO_DE_BORDO.md` (seções 7 a 7.6). Antes de qualquer coisa: `git pull`. Roteiro completo: `docs/ROTEIRO_FINAL.md`.
 
-**Onde paramos:** a **parte A (Bluetooth) está FECHADA e testada** (17/11): duas Heltec, **Heltec 1 = crachá** (sinal), **Heltec 2 = recipiente com o botão** (GPIO 4), agente v3 (automático por sinal + modo fixo por clique, janela 3 s / ausente 3 s / aviso 3 s) e sinal de clique (OLED "CLIQUE!" e aviso + bipe no PC). Todos os testes passaram. Faltou só cronometrar com precisão o afastar→bloqueio.
-A **parte B (caminho até o banco, testes 6 e 7) NÃO começou**: só definimos a rede e a arquitetura (abaixo).
+**Arranjo FINAL (decidido pela equipe em 24/11):**
+- **Gateway + recipiente (Heltec 2)** `firmware/gateway/gateway.ino`: Wi-Fi/MQTT, LoRa, botão externo GPIO 4, buzzer GPIO 5, DS1302 (40/41/42), BLE `UNIFESP-HOLDER` nº 201 (contador de cliques → o PC libera/prende). Ponto do botão dele: `seq` ≥ 32768, fila com reenvio a cada 10 s.
+- **Crachá (Heltec 1)** `firmware/cracha/cracha.ino`: simula **a pessoa num local remoto SEM internet**. Botão (**PRG** da placa e/ou GPIO 4) bate o ponto por **LoRa** (ACK 2 s × 3, fila persistente com reenvio a cada 30 s, `seq` 1–32767, DS1302 opcional); BLE `UNIFESP-BADGE` nº 101 (distância); buzzer; recebe BIPE e "PONTO OK" do gateway.
+- **LoRa:** 915 MHz, SF7, BW 125, CR 4/5, **sync word 0x2B** (próprio da equipe; igual nos dois; o 0x12 captava LoRa de outros grupos → "Pacote inválido").
+- **PC:** `pc-agent/agente_bloqueio.py` (`--recipiente 201` é o padrão); só libera/bloqueia, **não registra ponto**.
 
-**Próximos passos, em ordem (teste 6/7):**
-1. **Rede:** usar o **hotspot do celular em 2,4 GHz** (iPhone: "Maximizar compatibilidade"). A rede do Flávio (`172.21.220.x`, gateway `172.21.220.1`) parece institucional (isola aparelhos; a Heltec não entra em Wi-Fi corporativo). Este notebook estava em `172.20.10.9` (outra rede). O teste de porta daqui para `172.21.221.229:1883` falhou (rede diferente).
-2. **Um PC só (recomendado, a confirmar com o usuário):** **broker + Node-RED no PC do Flávio** (tem administrador para liberar a porta 1883 no firewall). Precisa copiar `cloud/.env` à mão (pendrive; **nunca** pelo Git, chat ou e-mail) e, em `cloud/servidor`: `git pull`, `npm install`, `npm run broker` (terminal 1, antes) e `npm run nodered` (terminal 2). Alternativa de dois PCs: broker no do Flávio e Node-RED aqui com `MQTT_HOST=<IP> npm run gerar-fluxo`.
-3. **Gravar as placas** (as duas Heltec: o arranjo BLE sai de cena, é só regravar depois): `firmware/testes/06_gateway_mqtt` numa (copiar `config.example.h` para `config.h` com Wi-Fi 2,4 GHz e o IP do PC do broker; biblioteca **PubSubClient**) e `firmware/testes/07_cracha_prg_lora` na outra (crachá **102**, botão PRG). Antena sempre conectada. Conferir no painel (`http://127.0.0.1:1880/dashboard`) e apagar os pontos de teste depois (`DELETE FROM evento WHERE seq > 0 ...`).
-4. **Avisar o professor** da mudança de requisito (botão/recipiente e sinal; PC não registra ponto).
-5. **Peças que faltam chegar:** bateria CR2032, buzzer (o botão push já foi usado). Quando chegarem: Teste 3 (persistência do DS1302) e Teste 4 (botão + LED + buzzer).
-6. **Prazos:** layout da PCI (era 14/11, **atrasado**; pinagem proposta em `hardware/PINAGEM.md`, botão no GPIO 4 já validado), PCI montada até **23/11**, apresentação **04/12/2026**. A PCI (3 pts) é o maior risco.
-7. **Pontas soltas:** alcance LoRa (teste 2); print do T10 sem senha; divisão de tarefas A/B/C/D; antes de 04/12 reativar o Supabase, exportar o histórico e ensaiar com o hotspot em 2,4 GHz; cronometrar afastar→bloqueio.
+**O que já foi VERIFICADO no hardware (24/11):** gateway compilou e gravou; `config.h` criado a partir do `config.example.h`; OLED `W:ok M:ok`; "Pacote inválido" resolvido com o sync word próprio; o restante do roteiro (servidor e gateway no ar) "deu certo" segundo a equipe.
 
-**Regras que valem sempre:** nunca ligar a Heltec sem antena · `pull` + commit + `push` a cada passo · atualizar o diário (problemas incluídos) · não mudar tabelas sem perguntar · o push exige a conta `PedroHSCoelho` no `gh` (se der 403, conferir `gh auth status`).
+**ONDE PARAMOS (a equipe teve que sair):** o **ponto remoto pelo crachá (PRG → LoRa → gateway → MQTT → banco) NÃO foi testado.** O código novo do crachá (commit `3e99bec`) está no Git, **ainda sem compilar e sem gravar**. O motivo da dúvida (LoRa × botão) era que o firmware anterior não tinha o PRG como botão de ponto em nenhuma placa; agora tem, no crachá.
+
+**Próximos passos, em ordem:**
+1. `git pull` no PC do Flávio; **regravar as duas placas** (gateway mudou e o crachá voltou a ter botão). Antenas sempre conectadas. Se der erro de compilação, anotar no diário.
+2. **Teste do ponto remoto:** apertar PRG no **crachá** → 1 bipe, "enviando", "PONTO OK" no OLED, 2 bipes no crachá e no gateway, ponto no painel (origem "Botão"). Se falhar: Monitor Serial do crachá (`sem ACK (seq N, tentativa 1/3)`) e do gateway (`LoRa ignorado: ...`) separam LoRa de MQTT/banco.
+3. **Meia-testes de separação (se precisar):** (A) botão externo do gateway → banco (ou `npm run publicar-teste -- botao 102`); (B) BIPE do painel (prova LoRa nos dois sentidos); (C) teste 07 antigo (já com sync word 0x2B).
+4. **Fila:** gateway desligado + clique no crachá → 3 graves, "SEM ACK: na fila"; religar → em até 30 s o ponto chega com `fila=true`, sem perda nem duplicata.
+5. **Montagem física a confirmar:** botão externo, buzzer (ativo: 1 kΩ + NPN) e DS1302 no gateway; buzzer, botão (ou só PRG) e DS1302 opcional no crachá. `BUZZER_PASSIVO` e `TEM_DS1302` no topo dos `.ino`.
+6. **Agente do PC** (`pip install bleak paho-mqtt`; `python pc-agent/agente_bloqueio.py --mqtt <IP>`): liberar/prender/bloquear; atenção ao risco de **Wi-Fi + BLE na mesma antena do gateway** (se o recipiente aparecer "sem sinal").
+7. **Medir as metas** (tabela no diário), **limpar dados de teste** (`DELETE FROM evento WHERE seq > 0 ...`), **avisar o professor** (botão no recipiente; PC não registra ponto), **PCI** (atrasada, maior risco), caixas 3D (opcional), evidências, divisão de tarefas A/B/C/D.
+8. **De 01 a 03/12:** reativar o Supabase, exportar o histórico (CSV), ensaiar com o hotspot 2,4 GHz e a explicação do banco. **Apresentação: 04/12/2026.**
+
+**Regras que valem sempre:** nunca ligar a Heltec sem antena · `pull` + commit + `push` a cada passo · atualizar o diário (problemas incluídos) · não mudar tabelas sem perguntar · o push exige a conta `PedroHSCoelho` no `gh` (se der 403, conferir `gh auth status`) · `config.h` e `cloud/.env` nunca vão ao Git.
 
 ---
-
-**24/11/2026 — código final escrito, NÃO compilado nem gravado:** `firmware/gateway/gateway.ino` (**gateway + recipiente: tem o botão, buzzer, DS1302 e BLE `UNIFESP-HOLDER` 201**),
-`firmware/cracha/cracha.ino` (só BLE de sinal + escuta LoRa + buzzer) e agente do PC (`--recipiente 201`, padrão); ver diário seções 7 e 7.1. Próximo: compilar no Arduino IDE (PC do Flávio),
-gravar (gateway numa Heltec, crachá na outra) e rodar o roteiro de testes: ponto → painel, sem rede → fila → reenvio, BIPE, desbloqueio BLE.
-
-**Versão final fechada em 24/11/2026:** só o botão externo (GPIO 4) vale como clique (PRG removido); roteiro completo em `docs/ROTEIRO_FINAL.md`.
-
-**24/11/2026 (correção):** o crachá **bate ponto remoto por LoRa** (PRG/GPIO 4, fila, ACK) e o gateway também tem o botão dele; `seq` separados (crachá 1–32767, gateway 32768+). Ainda não testado no hardware.
 
 ## 1. O que está PRONTO e verificado
 
