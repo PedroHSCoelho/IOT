@@ -102,6 +102,35 @@ msg.params = [tipo, id];
 msg.query = "UPDATE dispositivo SET ultimo_contato = now() WHERE tipo = $1 AND identificador = $2";
 return [msg, null];`
 
+// ---- A2b. Bloqueio/desbloqueio do PC -> tabela evento_pc -------------------
+
+// O agente do PC publica UMA mensagem a cada TRANSICAO (bloqueou / desbloqueou) em
+// unifesp/ponto/pc/{badge}/evento: {"estado":"BLOQUEADO|DESBLOQUEADO","modo":"AUTO|FIXO","motivo":"...","rssi":-55,"ts":"...Z"}
+// Isto NAO e ponto (nao passa por registrar_ponto): so entra no caderninho evento_pc.
+const montaEventoPc = `let p = null;
+try { p = JSON.parse(msg.payload.toString()); } catch (e) { p = null; }
+const estado = p && typeof p.estado === 'string' ? p.estado.toUpperCase() : '';
+if (!p || (estado !== 'BLOQUEADO' && estado !== 'DESBLOQUEADO')) {
+    node.status({ fill: 'yellow', shape: 'ring', text: 'evento do PC inválido (ignorado)' });
+    return null;
+}
+const modo = typeof p.modo === 'string' && /^(AUTO|FIXO)$/i.test(p.modo) ? p.modo.toUpperCase() : null;
+const id = p.id ?? 'pc-lab-01';
+const ts = typeof p.ts === 'string' && !isNaN(Date.parse(p.ts)) ? p.ts : null;   // senão o banco usa now()
+const rssi = typeof p.rssi === 'number' && isFinite(p.rssi) ? Math.round(p.rssi) : null;
+const motivo = typeof p.motivo === 'string' ? p.motivo.slice(0, 80) : null;
+msg.params = [String(id), ts, estado, modo, motivo, rssi, JSON.stringify(p)];
+msg.query = "INSERT INTO evento_pc (ts_evento, dispositivo_id, estado, modo, motivo, rssi, payload) " +
+            "SELECT COALESCE($2::timestamptz, now()), d.id, $3::text, $4::text, $5::text, $6::smallint, $7::jsonb " +
+            "FROM dispositivo d WHERE d.tipo = 'pc' AND d.identificador = $1::text";
+return msg;`
+
+// Confere se o INSERT gravou (0 linhas = PC nao cadastrado em dispositivo: nao some em silencio).
+const confereEventoPc = `const n = msg.pgsql && typeof msg.pgsql.rowCount === 'number' ? msg.pgsql.rowCount : null;
+if (n === 0) node.status({ fill: 'yellow', shape: 'ring', text: 'PC não cadastrado: nada gravado' });
+else node.status({ fill: 'green', shape: 'dot', text: 'PC ' + (msg.params ? msg.params[2] : '') + ' gravado' });
+return null;`
+
 // ---- A3. Painel: formatação das tabelas -----------------------------
 
 // Começa uma mensagem nova e limpa (senão a "query" do passo anterior vazaria
@@ -476,6 +505,13 @@ const fluxo = [
     x: 140, y: 320, wires: [['f_status']] },
   fn('f_status', 'monta UPDATE', montaStatus, 400, 290, [['pg_status'], ['delay_painel']], 2),
   pg('pg_status', 'atualiza ultimo_contato', 'SELECT 1', 640, 290, [['delay_painel']]),
+
+  { id: 'mqtt_pc_ev', type: 'mqtt in', z: Z, name: 'pc/+/evento', topic: 'unifesp/ponto/pc/+/evento',
+    qos: '1', datatype: 'utf8', broker: 'broker_local', nl: false, rap: true, rh: 0, inputs: 0,
+    x: 140, y: 370, wires: [['f_evento_pc']] },
+  fn('f_evento_pc', 'monta INSERT evento_pc', montaEventoPc, 400, 370, [['pg_evento_pc']]),
+  pg('pg_evento_pc', 'grava evento_pc', 'SELECT 1', 640, 370, [['f_confere_pc']]),
+  fn('f_confere_pc', 'confere gravação', confereEventoPc, 860, 370, [[]]),
 
   // ---------- Fluxo 3: erros ----------
   comment('c3', '3) ERROS: banco fora, internet caiu, senha errada...', 400),

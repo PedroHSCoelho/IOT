@@ -165,3 +165,15 @@ Queda ≈ 7 dB a cada dobra de distância; extrapolando, −65 dBm ≈ 4 m e −
 - **Linha do tempo das decisões:** 1) crachá com tudo (botão+LoRa+BLE) e gateway; 2) pedido de botão no gateway/recipiente (escolha: LoRa mantido) → gateway+recipiente com botão, crachá só sinal; 3) **correção da equipe:** o crachá deve bater ponto **remoto via LoRa** (local sem internet) → botão PRG volta no crachá, mantendo o botão do gateway.
 - **Não testado ainda:** ponto remoto crachá → LoRa → gateway → banco; fila; BIPE; agente do PC com o gateway final (Wi-Fi + BLE); metas de desempenho. O firmware novo do crachá (commit `3e99bec`) ainda não foi compilado nem gravado.
 - **Retomar por:** `PENDENCIAS.md` seção 0 (passos em ordem).
+
+## 8. Sessão de 26/11/2026: revisão do firmware e bloqueio/desbloqueio do PC no banco
+
+### 8.1 Problemas achados na revisão (causa e solução)
+- **`gateway.ino` não compilava:** uma quebra de linha de verdade dentro da string do `Serial.printf("LoRa ignorado...")` (linha 440). **Solução:** trocada por `\n`.
+- **"LoRa ignorado" falso no gateway:** o fim de uma TRANSMISSÃO (ACK, BIPE, PONTO OK) também dispara o pino DIO1, que o código entende como "chegou pacote". Depois de cada ACK o gateway lia um pacote inexistente e escrevia "LoRa de outro sistema" no OLED. **Solução:** zerar `chegouPacote` antes de `startReceive()` (o crachá já fazia). Ainda **não** conferido na bancada.
+
+### 8.2 Decisão: bloqueio/desbloqueio do PC vai para o banco (tabela nova)
+- **Pedido:** registrar no banco quando o PC bloqueia e desbloqueia. Não havia onde guardar (o status do PC só atualizava `ultimo_contato`). A equipe escolheu uma **tabela nova**, `evento_pc` (`cloud/db/init/06_evento_pc.sql`), separada de `evento` para não virar ponto (armadilha 14).
+- **Caminho:** agente do PC publica em `unifesp/ponto/pc/{badge}/evento` (QoS 1) **só nas transições** (bloqueou; saiu do bloqueio). Trocar AUTO↔FIXO não conta. Novo fluxo no Node-RED: `pc/+/evento` → `INSERT INTO evento_pc ... SELECT ... FROM dispositivo` (PC não cadastrado = 0 linhas, aviso no nó).
+- **Teste (simulado, sem hardware):** `BLOQUEADO` e `DESBLOQUEADO (FIXO, -55 dBm)` gravados com o usuário `nodered`; mensagem inválida ignorada; ponto simulado (badge 102) gravado. Dados de teste apagados.
+- **Risco:** `evento` já tem pontos do badge 101 com `seq` 13 e 14 (gateway antigo). O crachá novo usa `seq` 1–32767 e esses números serão recusados como duplicata. Apagar os pontos de teste antes do teste do crachá.

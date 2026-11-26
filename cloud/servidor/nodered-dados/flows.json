@@ -248,6 +248,83 @@
     ]
   },
   {
+    "id": "mqtt_pc_ev",
+    "type": "mqtt in",
+    "z": "tab_ponto",
+    "name": "pc/+/evento",
+    "topic": "unifesp/ponto/pc/+/evento",
+    "qos": "1",
+    "datatype": "utf8",
+    "broker": "broker_local",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "x": 140,
+    "y": 370,
+    "wires": [
+      [
+        "f_evento_pc"
+      ]
+    ]
+  },
+  {
+    "id": "f_evento_pc",
+    "type": "function",
+    "z": "tab_ponto",
+    "name": "monta INSERT evento_pc",
+    "func": "let p = null;\ntry { p = JSON.parse(msg.payload.toString()); } catch (e) { p = null; }\nconst estado = p && typeof p.estado === 'string' ? p.estado.toUpperCase() : '';\nif (!p || (estado !== 'BLOQUEADO' && estado !== 'DESBLOQUEADO')) {\n    node.status({ fill: 'yellow', shape: 'ring', text: 'evento do PC inválido (ignorado)' });\n    return null;\n}\nconst modo = typeof p.modo === 'string' && /^(AUTO|FIXO)$/i.test(p.modo) ? p.modo.toUpperCase() : null;\nconst id = p.id ?? 'pc-lab-01';\nconst ts = typeof p.ts === 'string' && !isNaN(Date.parse(p.ts)) ? p.ts : null;   // senão o banco usa now()\nconst rssi = typeof p.rssi === 'number' && isFinite(p.rssi) ? Math.round(p.rssi) : null;\nconst motivo = typeof p.motivo === 'string' ? p.motivo.slice(0, 80) : null;\nmsg.params = [String(id), ts, estado, modo, motivo, rssi, JSON.stringify(p)];\nmsg.query = \"INSERT INTO evento_pc (ts_evento, dispositivo_id, estado, modo, motivo, rssi, payload) \" +\n            \"SELECT COALESCE($2::timestamptz, now()), d.id, $3::text, $4::text, $5::text, $6::smallint, $7::jsonb \" +\n            \"FROM dispositivo d WHERE d.tipo = 'pc' AND d.identificador = $1::text\";\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 400,
+    "y": 370,
+    "wires": [
+      [
+        "pg_evento_pc"
+      ]
+    ]
+  },
+  {
+    "id": "pg_evento_pc",
+    "type": "postgresql",
+    "z": "tab_ponto",
+    "name": "grava evento_pc",
+    "query": "SELECT 1",
+    "postgreSQLConfig": "pg_supabase",
+    "split": false,
+    "rowsPerMsg": 1,
+    "outputs": 1,
+    "x": 640,
+    "y": 370,
+    "wires": [
+      [
+        "f_confere_pc"
+      ]
+    ]
+  },
+  {
+    "id": "f_confere_pc",
+    "type": "function",
+    "z": "tab_ponto",
+    "name": "confere gravação",
+    "func": "const n = msg.pgsql && typeof msg.pgsql.rowCount === 'number' ? msg.pgsql.rowCount : null;\nif (n === 0) node.status({ fill: 'yellow', shape: 'ring', text: 'PC não cadastrado: nada gravado' });\nelse node.status({ fill: 'green', shape: 'dot', text: 'PC ' + (msg.params ? msg.params[2] : '') + ' gravado' });\nreturn null;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 860,
+    "y": 370,
+    "wires": [
+      []
+    ]
+  },
+  {
     "id": "c3",
     "type": "comment",
     "z": "tab_ponto",

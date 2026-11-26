@@ -253,6 +253,7 @@ void avisarCracha(uint16_t id, uint8_t codigo) {
   montarPacote(p, 3, BADGE_PONTO, id, 0, 0);
   p[6] = codigo;
   for (int i = 0; i < 2; i++) { radio.transmit(p, 11); delay(150); }
+  chegouPacote = false;
   radio.startReceive();
 }
 
@@ -424,6 +425,7 @@ void atenderComando() {
   digitalWrite(PINO_LED, HIGH);
   radio.transmit(p, 11);
   digitalWrite(PINO_LED, LOW);
+  chegouPacote = false;
   radio.startReceive();
   cmd.tentativas++;
   cmd.proximo = millis() + CMD_INTERVALO_MS;
@@ -437,8 +439,7 @@ void processarPacote() {
   int estado = radio.readData(b, len);
   if (estado != RADIOLIB_ERR_NONE || len != 11 || b[0] != 1) {
     // Quase sempre e OUTRO equipamento LoRa por perto (ou ruido): nao e nosso. Ignora e so registra a causa.
-    Serial.printf("LoRa ignorado: estado=%d tamanho=%u RSSI=%.0f
-", estado, (unsigned)len, radio.getRSSI());
+    Serial.printf("LoRa ignorado: estado=%d tamanho=%u RSSI=%.0f\n", estado, (unsigned)len, radio.getRSSI());
     ultimoEvento = estado == RADIOLIB_ERR_CRC_MISMATCH ? "ruido LoRa (CRC)" : "LoRa de outro sistema";
     return;
   }
@@ -553,6 +554,7 @@ void loop() {
     digitalWrite(PINO_LED, HIGH);
     processarPacote();
     digitalWrite(PINO_LED, LOW);
+    chegouPacote = false;   // o fim de uma TRANSMISSAO (ACK) tambem dispara o DIO1: sem isto vira "LoRa ignorado" falso
     radio.startReceive();
   }
   atenderComando();

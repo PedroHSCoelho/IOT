@@ -41,6 +41,7 @@ import asyncio
 import json
 import threading
 import time
+from datetime import datetime, timezone
 import tkinter as tk
 from collections import deque
 
@@ -60,7 +61,7 @@ ap.add_argument("--janela", type=float, default=3, help="segundos considerados p
 ap.add_argument("--seg-ausente", type=float, default=3, help="segundos 'longe' seguidos antes do aviso")
 ap.add_argument("--aviso", type=float, default=3, help="segundos de contagem 'bloqueando em N s' antes de bloquear")
 ap.add_argument("--iniciar-liberado", action="store_true", help="comeca liberado (util para desenvolver)")
-ap.add_argument("--mqtt", default=None, help="IP do broker MQTT (opcional): publica o status do PC")
+ap.add_argument("--mqtt", default=None, help="IP do broker MQTT (opcional): publica o status do PC e cada bloqueio/desbloqueio (vai para o banco)")
 ap.add_argument("--mqtt-porta", type=int, default=1883)
 ARGS = ap.parse_args()
 
@@ -123,6 +124,16 @@ class Status:
             return
         corpo = {"estado": estado, **({"rssi": round(rssi)} if rssi is not None else {})}
         self.cliente.publish(f"unifesp/ponto/pc/{ARGS.badge}/status", json.dumps(corpo), qos=0)
+
+    def transicao(self, estado, motivo, modo=None, rssi=None):
+        """Registra no banco UM bloqueio/desbloqueio (tabela evento_pc), em unifesp/ponto/pc/<badge>/evento.
+        Nao e ponto: nao passa por registrar_ponto. QoS 1 (o broker confirma; paho guarda ate conectar)."""
+        corpo = {"estado": estado, "motivo": motivo,
+                 "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                 **({"modo": modo} if modo else {}),
+                 **({"rssi": round(rssi)} if rssi is not None else {})}
+        if self.cliente:
+            self.cliente.publish(f"unifesp/ponto/pc/{ARGS.badge}/evento", json.dumps(corpo), qos=1)
 
 
 # ---------------------------------------------------------------- Agente (interface + decisoes)
@@ -275,6 +286,8 @@ class Agente:
 
     # ---------- telas ----------
     def bloquear(self, motivo):
+        if self.estado != "BLOQUEADO":
+            self.status.transicao("BLOQUEADO", motivo)
         self.fechar_aviso()
         self.estado = "BLOQUEADO"
         self.aviso_fim = self.desde_longe = None
@@ -300,6 +313,8 @@ class Agente:
 
     def liberar(self, rssi, novo_estado, motivo):
         """Libera a tela. novo_estado: 'AUTO' (vigia o sinal) ou 'FIXO' (fica liberado ate o proximo clique)."""
+        if self.estado == "BLOQUEADO":                 # AUTO<->FIXO nao e desbloqueio: so conta a saida do bloqueio
+            self.status.transicao("DESBLOQUEADO", motivo, novo_estado, rssi)
         self.estado = novo_estado
         self.fechar_aviso()
         if self.tela:
