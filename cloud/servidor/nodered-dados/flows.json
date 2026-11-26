@@ -311,7 +311,7 @@
     "type": "function",
     "z": "tab_ponto",
     "name": "confere gravação",
-    "func": "const n = msg.pgsql && typeof msg.pgsql.rowCount === 'number' ? msg.pgsql.rowCount : null;\nif (n === 0) node.status({ fill: 'yellow', shape: 'ring', text: 'PC não cadastrado: nada gravado' });\nelse node.status({ fill: 'green', shape: 'dot', text: 'PC ' + (msg.params ? msg.params[2] : '') + ' gravado' });\nreturn null;",
+    "func": "const n = msg.pgsql && typeof msg.pgsql.rowCount === 'number' ? msg.pgsql.rowCount : null;\nif (n === 0) node.status({ fill: 'yellow', shape: 'ring', text: 'PC não cadastrado: nada gravado' });\nelse node.status({ fill: 'green', shape: 'dot', text: 'PC ' + (msg.params ? msg.params[2] : '') + ' gravado' });\nreturn msg;   // atualiza o painel",
     "outputs": 1,
     "timeout": 0,
     "noerr": 0,
@@ -321,7 +321,9 @@
     "x": 860,
     "y": 370,
     "wires": [
-      []
+      [
+        "delay_painel"
+      ]
     ]
   },
   {
@@ -442,6 +444,7 @@
       [
         "pg_presenca",
         "pg_disp",
+        "pg_evpc",
         "f_filtros"
       ]
     ]
@@ -734,6 +737,44 @@
     "wires": [
       [
         "t_hist"
+      ]
+    ]
+  },
+  {
+    "id": "pg_evpc",
+    "type": "postgresql",
+    "z": "tab_ponto",
+    "name": "vw_eventos_pc",
+    "query": "SELECT to_char(ts_evento, 'DD/MM HH24:MI:SS') AS quando, pc, funcionario_nome, estado, modo, motivo, rssi FROM vw_eventos_pc ORDER BY ts_evento DESC, id DESC LIMIT 30",
+    "postgreSQLConfig": "pg_supabase",
+    "split": false,
+    "rowsPerMsg": 1,
+    "outputs": 1,
+    "x": 820,
+    "y": 860,
+    "wires": [
+      [
+        "f_evpc"
+      ]
+    ]
+  },
+  {
+    "id": "f_evpc",
+    "type": "function",
+    "z": "tab_ponto",
+    "name": "formata bloqueios do PC",
+    "func": "const rows = msg.payload || [];\nreturn { payload: rows.map((r) => ({\n    'Quando': r.quando,\n    'PC': r.pc,\n    'Funcionário': r.funcionario_nome || '-',\n    'Estado': r.estado === 'BLOQUEADO' ? '🔒 Bloqueado' : '🔓 Desbloqueado',\n    'Modo': r.modo || '',\n    'Motivo': r.motivo || '',\n    'Sinal': r.rssi !== null && r.rssi !== undefined ? r.rssi + ' dBm' : '',\n})) };",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1040,
+    "y": 860,
+    "wires": [
+      [
+        "t_evpc"
       ]
     ]
   },
@@ -1417,13 +1458,27 @@
     "groupType": "default"
   },
   {
+    "id": "g_pcev",
+    "type": "ui-group",
+    "name": "Bloqueio / desbloqueio do PC (últimos 30)",
+    "page": "ui_page",
+    "width": "12",
+    "height": "1",
+    "order": 8,
+    "showTitle": true,
+    "className": "",
+    "visible": "true",
+    "disabled": "false",
+    "groupType": "default"
+  },
+  {
     "id": "g_cmd",
     "type": "ui-group",
     "name": "Comandos para o crachá",
     "page": "ui_page",
     "width": "6",
     "height": "1",
-    "order": 8,
+    "order": 9,
     "showTitle": true,
     "className": "",
     "visible": "true",
@@ -1437,7 +1492,7 @@
     "page": "ui_page",
     "width": "6",
     "height": "1",
-    "order": 9,
+    "order": 10,
     "showTitle": true,
     "className": "",
     "visible": "true",
@@ -1698,6 +1753,31 @@
     "className": "",
     "x": 1280,
     "y": 880,
+    "wires": []
+  },
+  {
+    "id": "t_evpc",
+    "type": "ui-table",
+    "z": "tab_ponto",
+    "group": "g_pcev",
+    "name": "Bloqueios do PC",
+    "label": "Bloqueios do PC",
+    "order": 1,
+    "width": 0,
+    "height": 0,
+    "maxrows": 0,
+    "passthru": false,
+    "autocols": true,
+    "showSearch": false,
+    "deselect": true,
+    "selectionType": "none",
+    "columns": [],
+    "mobileBreakpoint": "sm",
+    "mobileBreakpointType": "defaults",
+    "action": "replace",
+    "className": "",
+    "x": 1280,
+    "y": 940,
     "wires": []
   },
   {

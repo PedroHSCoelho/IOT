@@ -40,3 +40,24 @@ CREATE POLICY nodered_evento_pc_insert ON evento_pc FOR INSERT TO nodered WITH C
 -- API pública do Supabase: fechada (igual às outras tabelas)
 REVOKE ALL ON evento_pc FROM anon, authenticated;
 REVOKE ALL ON SEQUENCE evento_pc_id_seq FROM anon, authenticated;
+
+
+-- ---------------------------------------------------------------------
+-- vw_eventos_pc: para o painel (hora já em Brasília e nome do PC/dono)
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE VIEW vw_eventos_pc AS
+SELECT
+    p.id,
+    p.ts_evento AT TIME ZONE 'America/Sao_Paulo' AS ts_evento,
+    d.identificador                              AS pc,
+    f.nome                                       AS funcionario_nome,
+    p.estado,
+    p.modo,
+    p.motivo,
+    p.rssi
+FROM evento_pc p
+JOIN dispositivo d ON d.id = p.dispositivo_id
+LEFT JOIN funcionario f ON f.id = d.funcionario_id;
+
+REVOKE ALL ON vw_eventos_pc FROM anon, authenticated;
+GRANT SELECT ON vw_eventos_pc TO nodered;

@@ -129,7 +129,7 @@ return msg;`
 const confereEventoPc = `const n = msg.pgsql && typeof msg.pgsql.rowCount === 'number' ? msg.pgsql.rowCount : null;
 if (n === 0) node.status({ fill: 'yellow', shape: 'ring', text: 'PC não cadastrado: nada gravado' });
 else node.status({ fill: 'green', shape: 'dot', text: 'PC ' + (msg.params ? msg.params[2] : '') + ' gravado' });
-return null;`
+return msg;   // atualiza o painel`
 
 // ---- A3. Painel: formatação das tabelas -----------------------------
 
@@ -207,6 +207,17 @@ return { payload: rows.map((r) => ({
     'Motivo': r.motivo || '',
     'Sinal': r.rssi !== null && r.rssi !== undefined ? r.rssi + ' dBm' : '',
     'Fila': r.fila ? 'sim' : '',
+})) };`
+
+const formataEventosPc = `const rows = msg.payload || [];
+return { payload: rows.map((r) => ({
+    'Quando': r.quando,
+    'PC': r.pc,
+    'Funcionário': r.funcionario_nome || '-',
+    'Estado': r.estado === 'BLOQUEADO' ? '🔒 Bloqueado' : '🔓 Desbloqueado',
+    'Modo': r.modo || '',
+    'Motivo': r.motivo || '',
+    'Sinal': r.rssi !== null && r.rssi !== undefined ? r.rssi + ' dBm' : '',
 })) };`
 
 const formataDispositivos = `const rows = msg.payload || [];
@@ -397,6 +408,9 @@ const SQL = {
     "WHERE (NULLIF($1::text, '') IS NULL OR ts_evento::date = NULLIF($1::text, '')::date) " +
     "AND strpos(lower(nome), lower($2::text)) > 0 " +
     "ORDER BY ts_evento DESC, id DESC LIMIT 50",
+  eventosPc:
+    "SELECT to_char(ts_evento, 'DD/MM HH24:MI:SS') AS quando, pc, funcionario_nome, estado, modo, motivo, rssi " +
+    "FROM vw_eventos_pc ORDER BY ts_evento DESC, id DESC LIMIT 30",
   dispositivos:
     "SELECT tipo, identificador, funcionario_nome, firmware_versao, " +
     HORA('ultimo_contato', 'DD/MM HH24:MI:SS') + " AS ultimo_contato, online " +
@@ -511,7 +525,7 @@ const fluxo = [
     x: 140, y: 370, wires: [['f_evento_pc']] },
   fn('f_evento_pc', 'monta INSERT evento_pc', montaEventoPc, 400, 370, [['pg_evento_pc']]),
   pg('pg_evento_pc', 'grava evento_pc', 'SELECT 1', 640, 370, [['f_confere_pc']]),
-  fn('f_confere_pc', 'confere gravação', confereEventoPc, 860, 370, [[]]),
+  fn('f_confere_pc', 'confere gravação', confereEventoPc, 860, 370, [['delay_painel']]),
 
   // ---------- Fluxo 3: erros ----------
   comment('c3', '3) ERROS: banco fora, internet caiu, senha errada...', 400),
@@ -531,7 +545,7 @@ const fluxo = [
     randomFirst: '1', randomLast: '5', randomUnits: 'seconds', drop: true, allowrate: false,
     outputs: 1, x: 380, y: 600, wires: [['f_limpa']] },
   fn('f_limpa', 'mensagem limpa', limpaMensagem, 600, 600,
-     [['pg_presenca', 'pg_disp', 'f_filtros']]),
+     [['pg_presenca', 'pg_disp', 'pg_evpc', 'f_filtros']]),
   // Só as 3 consultas filtradas recebem msg.params (as outras não usam $1/$2).
   fn('f_filtros', 'monta filtros (dia, nome)', montaFiltros, 600, 680,
      [['pg_hoje', 'pg_semana', 'pg_historico'], ['x_filtro']], 2),
@@ -549,6 +563,8 @@ const fluxo = [
   fn('f_semana', 'formata semana', formataSemana, 1040, 680, [['t_semana'], ['g_semana']], 2),
   pg('pg_historico', 'vw_historico', SQL.historico, 820, 740, [['f_hist']]),
   fn('f_hist', 'formata histórico', formataHistorico, 1040, 740, [['t_hist']]),
+  pg('pg_evpc', 'vw_eventos_pc', SQL.eventosPc, 820, 860, [['f_evpc']]),
+  fn('f_evpc', 'formata bloqueios do PC', formataEventosPc, 1040, 860, [['t_evpc']]),
   pg('pg_disp', 'vw_dispositivos', SQL.dispositivos, 820, 800, [['f_disp']]),
   fn('f_disp', 'formata dispositivos', formataDispositivos, 1040, 800, [['t_disp'], ['x_gw']], 2),
 
@@ -609,8 +625,9 @@ const fluxo = [
   G('g_sem', 'Semana (segunda a domingo) do dia escolhido', 5, 6),
   G('g_graf', 'Horas na semana', 6, 6),
   G('g_hist', 'Histórico (últimos 50 pontos)', 7, 12),
-  G('g_cmd', 'Comandos para o crachá', 8, 6),
-  G('g_csv', 'Exportar (CSV)', 9, 6),
+  G('g_pcev', 'Bloqueio / desbloqueio do PC (últimos 30)', 8, 12),
+  G('g_cmd', 'Comandos para o crachá', 9, 6),
+  G('g_csv', 'Exportar (CSV)', 10, 6),
 
   // ---------- Dashboard 2.0 (widgets) ----------
   texto('x_presentes', 'g_pres', 1, 1280, 540, 20),
@@ -633,6 +650,7 @@ const fluxo = [
     width: 0, height: 6, className: '', interpolation: 'linear', x: 1280, y: 760, wires: [],
   },
   tabela('t_hist', 'g_hist', 'Histórico', 1, 1280, 880),
+  tabela('t_evpc', 'g_pcev', 'Bloqueios do PC', 1, 1280, 940),
   texto('x_cmd', 'g_cmd', 5, 1060, 1120, 15),
   {
     id: 'md_csv', type: 'ui-markdown', z: Z, group: 'g_csv', name: 'links CSV', order: 1, width: 0, height: 0,
