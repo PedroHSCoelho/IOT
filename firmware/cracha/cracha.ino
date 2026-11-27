@@ -242,17 +242,19 @@ uint32_t esperarAck(uint16_t s) {
 }
 
 // Uma rodada de ate 3 tentativas para UM ponto. true = o gateway confirmou.
-bool enviarPonto(const Ponto& p) {
+// (recebe os campos soltos, e nao o struct Ponto: o Arduino IDE cria os prototipos das funcoes ANTES da
+//  definicao do struct e daria o erro "'Ponto' does not name a type")
+bool enviarPonto(uint16_t seq, uint32_t hora, uint8_t reenvio) {
   uint8_t pacote[11];
-  montarPacote(pacote, 1, ID_CRACHA, p.seq, p.hora, p.reenvio ? 1 : 0);
+  montarPacote(pacote, 1, ID_CRACHA, seq, hora, reenvio ? 1 : 0);
   for (int t = 1; t <= TENTATIVAS; t++) {
     digitalWrite(PINO_LED, HIGH);
     radio.transmit(pacote, 11);
     digitalWrite(PINO_LED, LOW);
     escutar();
-    uint32_t hora = esperarAck(p.seq);
-    if (hora) { sincronizarRelogio(hora); return true; }
-    Serial.printf("sem ACK (seq %u, tentativa %d/%d)\n", p.seq, t, TENTATIVAS);
+    uint32_t horaGw = esperarAck(seq);
+    if (horaGw) { sincronizarRelogio(horaGw); return true; }
+    Serial.printf("sem ACK (seq %u, tentativa %d/%d)\n", seq, t, TENTATIVAS);
   }
   escutar();
   return false;
@@ -266,7 +268,7 @@ int processarFila() {
   while (nFila > 0) {
     Ponto p = fila[0];
     avisar("enviando seq " + String(p.seq), 3000);
-    if (!enviarPonto(p)) {
+    if (!enviarPonto(p.seq, p.hora, p.reenvio)) {
       if (!fila[0].reenvio) { fila[0].reenvio = 1; salvarFila(); }   // da proxima vez vai com a marca "fila"
       break;
     }

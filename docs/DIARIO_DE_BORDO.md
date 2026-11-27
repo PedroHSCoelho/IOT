@@ -183,3 +183,8 @@ Queda ≈ 7 dB a cada dobra de distância; extrapolando, −65 dBm ≈ 4 m e −
 - **Revalidação do LoRa (sem as placas e sem compilador no notebook):** (1) configuração do rádio idêntica nos dois `.ino` e igual à do teste 02 que passou (915 MHz, BW 125, SF7, CR 4/5, sync 0x2B, TCXO 1,8 V, mesma forma da RadioLib 8.x); (2) layout do pacote de 11 bytes conferido byte a byte entre `montarPacote`/leituras do crachá e do gateway (tipo 1 ponto, 2 ACK, 3 comando, 4 ACK do comando); (3) ACK casa por badge + seq, hora em little-endian; (4) lado gateway → banco simulado com o JSON exato do firmware: ponto da fila (`fila=true`, rssi/snr gravados) e **retransmissão do mesmo seq recusada (0 duplicatas)**. Dados de teste apagados.
 - **Achado:** `firmware/testes/06_gateway_mqtt` ainda usa sync word 0x12; se for gravado junto com o crachá final, os dois não se ouvem. Usar só o gateway final.
 - **Continua sem prova:** o ar (PRG → antena → gateway). Só a bancada confirma.
+
+### 8.4 Problema: erro de compilação do crachá "'Ponto' does not name a type" (26/11/2026)
+- **Sintoma:** `cracha.ino` linha 245 (`bool enviarPonto(const Ponto& p)`).
+- **Causa:** o Arduino IDE cria sozinho os protótipos das funções no topo do arquivo, ANTES da definição do `struct Ponto`; uma função que tem o struct na assinatura então falha.
+- **Solução:** `enviarPonto(uint16_t seq, uint32_t hora, uint8_t reenvio)` recebe os campos soltos. O gateway não tem esse caso (o struct só aparece dentro de funções).
