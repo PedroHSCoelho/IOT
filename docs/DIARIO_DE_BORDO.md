@@ -194,3 +194,9 @@ Queda ≈ 7 dB a cada dobra de distância; extrapolando, −65 dBm ≈ 4 m e −
 - **O que mudou desde o último ponto no banco (24/11 20:54):** `cracha.ino` reescrito (PRG→LoRa, BLE, fila), `gateway.ino` com ajustes pequenos (seq ≥ 32768, limpeza do DIO1, bipe no ponto remoto) e fluxo do Node-RED regenerado.
 - **Verificado:** nuvem (broker, Node-RED, banco) grava ponto simulado → o defeito está nas placas/no ar. Dado de teste apagado.
 - **Ação:** firmware `diag-26/11-b` com etapas numeradas no Serial e contadores no OLED (tx/rx). Roteiro em `docs/DIAGNOSTICO_PONTO_REMOTO.md`. Causa ainda a confirmar na bancada.
+
+### 8.6 Ponto LoRa não chegava ao banco: seq repetido e origem única (26/11/2026)
+- **Sintoma:** só o ponto do botão do gateway ia ao banco; o do crachá (LoRa) não, e sem erro.
+- **Causa provável (achada no banco):** crachá e botão do gateway usavam `origem='botao'`; o `seq` do crachá recomeça em 1 e o banco já tinha `(101, botao, seq 1–14)` de 24/11. A regra R2 (`UNIQUE badge+origem+seq`) tratava o ponto como DUPLICADO e não gravava nada, sem alarme. O botão do gateway escapava por usar `seq` ≥ 32768. Falta confirmar na bancada que é só isso (a parte do ar continua sem prova).
+- **Solução (pedido do usuário):** `origem` passa a ter 3 valores: `botao` (gateway), `lora` (crachá remoto), `ble` (PC, sem uso). `07_origem_lora.sql` (CHECK + `registrar_ponto` aceitando `lora`), gateway publica `origem:"lora"` no ponto vindo do rádio, painel/CSV mostram a origem; teste T11 (mesmo seq em `botao` e `lora` não é duplicata). Uma coluna `canal` tentada antes foi desfeita (redundante com `origem`).
+- **Ação:** regravar o gateway; `npm run gerar-fluxo` e reiniciar o Node-RED.

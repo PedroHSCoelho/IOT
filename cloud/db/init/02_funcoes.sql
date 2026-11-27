@@ -36,7 +36,7 @@ $$;
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION registrar_ponto(
     p_badge_id  INTEGER,
-    p_origem    TEXT,                       -- 'botao' | 'ble'
+    p_origem    TEXT,                       -- 'botao' (botão do gateway) | 'lora' (crachá remoto) | 'ble' (PC)
     p_seq       INTEGER,
     p_ts        TIMESTAMPTZ,
     p_estado    TEXT     DEFAULT NULL,      -- só BLE: 'PRESENTE' | 'AUSENTE'
@@ -72,7 +72,7 @@ BEGIN
     -- Bloco 0: o pacote está completo e faz sentido? (PAYLOAD_INVALIDO)
     -- -----------------------------------------------------------------
     IF p_badge_id IS NULL OR p_seq IS NULL OR p_ts IS NULL
-       OR p_origem IS NULL OR p_origem NOT IN ('botao', 'ble')
+       OR p_origem IS NULL OR p_origem NOT IN ('botao', 'ble', 'lora')
        OR (p_origem = 'ble' AND (p_estado IS NULL OR p_estado NOT IN ('PRESENTE', 'AUSENTE')))
     THEN
         INSERT INTO evento_rejeitado (motivo, payload) VALUES ('PAYLOAD_INVALIDO', v_registro);

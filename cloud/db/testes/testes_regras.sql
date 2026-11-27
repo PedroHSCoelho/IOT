@@ -47,6 +47,24 @@ BEGIN
 END $$;
 
 
+-- ---------- T11: origem 'lora' (crachá remoto) é distinta de 'botao' (botão do gateway) ----------
+-- Mesmo badge e mesmo seq nas duas origens NÃO é duplicata: era o bug que descartava o ponto LoRa.
+DO $$
+DECLARE
+    base TIMESTAMPTZ := (dia_local(now())::TIMESTAMP) AT TIME ZONE 'America/Sao_Paulo';
+    r RECORD;
+BEGIN
+    INSERT INTO funcionario (nome, badge_id) VALUES ('T-lora', 9110);
+    PERFORM registrar_ponto(9110, 'botao', 1, base + interval '1 min');
+    SELECT * INTO r FROM registrar_ponto(9110, 'lora', 1, base + interval '2 min', NULL, -80::SMALLINT, 7.5::REAL, false);
+    PERFORM pg_temp.chk('T11', 'Ponto lora com o mesmo seq do botão é gravado (SAIDA)', 'SAIDA/true', r.tipo || '/' || r.contabilizado);
+    PERFORM pg_temp.chk('T11b', 'Origem gravada como lora', 'lora',
+        (SELECT origem FROM evento WHERE badge_id = 9110 AND origem = 'lora'));
+    SELECT * INTO r FROM registrar_ponto(9110, 'lora', 1, base + interval '2 min');
+    PERFORM pg_temp.chk('T11c', 'Mesmo lora/seq repetido: DUPLICADO', 'DUPLICADO', r.motivo);
+END $$;
+
+
 -- ---------- T4: botão (CHEGADA) + BLE PRESENTE 2 min depois ----------
 DO $$
 DECLARE

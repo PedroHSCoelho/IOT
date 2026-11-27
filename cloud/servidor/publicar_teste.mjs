@@ -6,6 +6,7 @@
 // Uso (com o broker e o Node-RED rodando):
 //   npm run publicar-teste                      -> botão do crachá 101
 //   npm run publicar-teste -- ble PRESENTE      -> BLE "chegou" do crachá 101
+//   npm run publicar-teste -- lora 102          -> ponto do crachá remoto (LoRa)
 //   npm run publicar-teste -- botao 101         -> botão do crachá 101
 //   npm run publicar-teste -- botao 999         -> crachá desconhecido (vai para rejeitados)
 // =====================================================================
@@ -57,7 +58,7 @@ if (process.argv[2] === 'gateway') {
 
 function principal() {
 const [origem = 'botao', extra] = process.argv.slice(2)
-const badge = origem === 'botao' && extra ? Number(extra) : 101
+const badge = (origem === 'botao' || origem === 'lora') && extra ? Number(extra) : 101
 
 // "seq" precisa ser único por crachá+origem. Usamos a hora para nunca repetir
 // (o crachá real usa um contador que só cresce).

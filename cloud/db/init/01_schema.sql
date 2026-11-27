@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS evento (
     badge_id       INTEGER     NOT NULL
                    REFERENCES funcionario (badge_id),    -- só aceita crachá cadastrado
     origem         TEXT        NOT NULL
-                   CHECK (origem IN ('botao', 'ble')),
+                   CHECK (origem IN ('botao', 'ble', 'lora')),   -- botao = botão do gateway; lora = crachá remoto; ble = PC
     tipo           TEXT        NOT NULL
                    CHECK (tipo IN ('CHEGADA', 'SAIDA')), -- decidido por registrar_ponto() (R3)
     seq            INTEGER     NOT NULL,                 -- contador, serve para descartar retransmissões

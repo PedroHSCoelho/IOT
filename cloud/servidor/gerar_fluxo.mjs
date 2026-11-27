@@ -153,7 +153,7 @@ return [{ payload: null, params: [dia, nome] }, { payload: texto }];`
 
 const ajudantes = `const hm = (m) => Math.floor(Math.abs(m) / 60) + 'h ' + String(Math.abs(m) % 60).padStart(2, '0') + 'min';
 const saldo = (m) => (m < 0 ? '-' : '+') + hm(m);
-const origemTxt = (o) => o === 'botao' ? 'Botão (LoRa)' : o === 'ble' ? 'Automático (BLE)' : '-';
+const origemTxt = (o) => o === 'botao' ? 'Botão (gateway)' : o === 'lora' ? 'Crachá (LoRa)' : o === 'ble' ? 'Automático (BLE)' : '-';
 `
 
 const formataPresenca = ajudantes + `const rows = msg.payload || [];
@@ -202,7 +202,7 @@ return { payload: rows.map((r) => ({
     'Quando': r.quando,
     'Funcionário': r.nome,
     'Tipo': r.tipo,
-    'Origem': r.origem === 'botao' ? 'Botão' : 'BLE',
+    'Origem': r.origem === 'botao' ? 'Botão (gateway)' : r.origem === 'lora' ? 'Crachá (LoRa)' : 'BLE',
     'Conta horas': r.contabilizado ? 'sim' : 'não',
     'Motivo': r.motivo || '',
     'Sinal': r.rssi !== null && r.rssi !== undefined ? r.rssi + ' dBm' : '',

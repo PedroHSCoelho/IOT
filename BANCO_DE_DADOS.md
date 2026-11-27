@@ -10,7 +10,8 @@ O sistema substitui o relógio de ponto. Um **crachá** (placa Heltec WiFi LoRa 
 
 | Origem | Como acontece | Caminho até o banco |
 | --- | --- | --- |
-| `botao` | Funcionário aperta o botão do crachá, em qualquer lugar do prédio | Crachá → LoRa 915 MHz → gateway (2ª Heltec) → Wi-Fi/MQTT → Node-RED → PostgreSQL |
+| `botao` | Botão ligado ao **gateway** (recipiente), direto pelo Wi-Fi do gateway | Crachá → LoRa 915 MHz → gateway (2ª Heltec) → Wi-Fi/MQTT → Node-RED → PostgreSQL |
+| `lora` | Botão PRG do **crachá de campo** (sem internet): crachá → LoRa → gateway → MQTT. Adicionada em 26/11/2026; antes o ponto do crachá usava `botao` e colidia com os `seq` do botão do gateway (R2 descartava como DUPLICADO) | Crachá → LoRa → gateway → Wi-Fi/MQTT → Node-RED → PostgreSQL |
 | `ble` | O computador detecta o crachá por Bluetooth (BLE) quando ele chega perto ou se afasta (**não usada no fluxo final**, ver nota abaixo) | Crachá → BLE → agente Python no PC → Wi-Fi/MQTT → Node-RED → PostgreSQL |
 
 > **Atualização de 12/11/2026 (modelo de dados inalterado):** no fluxo final o BLE **não registra ponto**. O botão do
@@ -150,7 +151,7 @@ Como ler: um funcionário bate **muitos** eventos; um funcionário pode ter **v�
 | `ts_evento` | `TIMESTAMPTZ` | obrigatório | Quando o ponto foi batido (hora usada nos cálculos) |
 | `recebido_em` | `TIMESTAMPTZ` | padrão `now()` | Quando chegou ao servidor. A diferença mostra atraso ou fila |
 | `badge_id` | `INTEGER` | FK → `funcionario.badge_id` | |
-| `origem` | `TEXT` | `botao` ou `ble` | |
+| `origem` | `TEXT` | `botao`, `lora` ou `ble` | |
 | `tipo` | `TEXT` | `CHEGADA` ou `SAIDA` | Decidido pela função `registrar_ponto()` (regra R3) |
 | `seq` | `INTEGER` | obrigatório | |
 | `fila` | `BOOLEAN` | padrão `false` | |

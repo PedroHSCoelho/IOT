@@ -8,7 +8,7 @@
 //
 // O que acontece num CLIQUE:
 //   1) Bipe curto + contador de cliques do BLE sobe (o agente do PC percebe e libera/prende o PC).
-//   2) Ponto (badge 101, origem "botao") com a hora do DS1302/NTP -> fila na memoria (NVS).
+//   2) Ponto (badge 101, origem "botao", distinto do "lora" do cracha) com a hora do DS1302/NTP -> fila na memoria (NVS).
 //   3) Tenta publicar em unifesp/ponto/evento. Deu certo: 2 bipes aqui, e o CRACHA apita por LoRa.
 //      Nao deu (sem Wi-Fi/MQTT): 3 bipes graves, o ponto fica na fila e e reenviado a cada 10 s.
 //
@@ -276,7 +276,8 @@ void publicarAckComando(uint16_t badge, uint32_t id, bool ok) {
 }
 
 // Publica um ponto. true = o broker aceitou.
-bool publicarPonto(uint16_t badge, uint16_t seq, uint32_t hora, bool fila, bool comRssi) {
+// origem: "botao" = botao do gateway; "lora" = cracha remoto (o banco guarda separado: coluna evento.origem).
+bool publicarPonto(const char* origem, uint16_t badge, uint16_t seq, uint32_t hora, bool fila, bool comRssi) {
   if (!mqtt.connected()) return false;
   if (hora < 1700000000) hora = horaValida() ? (uint32_t)time(nullptr) : 0;   // sem hora: nao publica
   if (!hora) return false;
@@ -286,11 +287,11 @@ bool publicarPonto(uint16_t badge, uint16_t seq, uint32_t hora, bool fila, bool 
   strftime(iso, sizeof(iso), "%Y-%m-%dT%H:%M:%SZ", &tmv);
   char js[200];
   if (comRssi)
-    snprintf(js, sizeof(js), "{\"ts\":\"%s\",\"badge\":%u,\"origem\":\"botao\",\"seq\":%u,\"fila\":%s,\"rssi_lora\":%.0f,\"snr\":%.1f}",
-             iso, badge, seq, fila ? "true" : "false", ultimoRssi, ultimoSnr);
+    snprintf(js, sizeof(js), "{\"ts\":\"%s\",\"badge\":%u,\"origem\":\"%s\",\"seq\":%u,\"fila\":%s,\"rssi_lora\":%.0f,\"snr\":%.1f}",
+             iso, badge, origem, seq, fila ? "true" : "false", ultimoRssi, ultimoSnr);
   else
-    snprintf(js, sizeof(js), "{\"ts\":\"%s\",\"badge\":%u,\"origem\":\"botao\",\"seq\":%u,\"fila\":%s}",
-             iso, badge, seq, fila ? "true" : "false");
+    snprintf(js, sizeof(js), "{\"ts\":\"%s\",\"badge\":%u,\"origem\":\"%s\",\"seq\":%u,\"fila\":%s}",
+             iso, badge, origem, seq, fila ? "true" : "false");
   bool ok = mqtt.publish(TOPICO_EVENTO, js);
   if (ok) Serial.println(js);
   return ok;
@@ -301,7 +302,7 @@ int processarFila() {
   int enviados = 0;
   while (nFila > 0) {
     Ponto p = fila[0];
-    if (!publicarPonto(BADGE_PONTO, p.seq, p.hora, p.reenvio, false)) {
+    if (!publicarPonto("botao", BADGE_PONTO, p.seq, p.hora, p.reenvio, false)) {
       if (!fila[0].reenvio) { fila[0].reenvio = 1; salvarFila(); }
       break;
     }
@@ -463,7 +464,7 @@ void processarPacote() {
   // PONTO REMOTO vindo do botao do cracha: publica e responde ACK (com a hora certa)
   uint32_t horaCracha = b[6] | (b[7] << 8) | (b[8] << 16) | ((uint32_t)b[9] << 24);
   Serial.printf("[ETAPA B] publicando no MQTT (mqtt=%s, hora valida=%s)\n", mqtt.connected() ? "conectado" : "DESCONECTADO", horaValida() ? "sim" : "NAO (NTP)");
-  if (publicarPonto(badge, seq, horaCracha, b[10] & 1, true)) {
+  if (publicarPonto("lora", badge, seq, horaCracha, b[10] & 1, true)) {
     Serial.println("[ETAPA C] MQTT aceitou; mandando ACK por LoRa");
     ultimoEvento = "cracha " + String(badge) + " seq " + String(seq) + " OK";
     uint8_t ack[11];
