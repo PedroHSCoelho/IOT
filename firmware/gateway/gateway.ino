@@ -37,6 +37,7 @@
 #include "config.h"
 
 // ============================ CONFIGURACAO ============================
+const char* VERSAO = "diag-26/11-b";       // aparece no Serial: confirma QUE firmware esta gravado
 const uint16_t BADGE_PONTO = 101;          // de quem e o ponto (o cracha da demo)
 const uint16_t ID_RECIPIENTE = 201;        // numero no anuncio BLE (o agente usa --recipiente 201)
 const char* NOME_BLE = "UNIFESP-HOLDER";   // o agente do PC procura por este nome
@@ -106,6 +107,7 @@ struct Comando { bool ativo; uint32_t id; uint16_t badge; int tentativas; unsign
 // recusa (badge, origem, seq) repetido; faixas separadas evitam que um ponto "apague" o outro.
 uint16_t seqGw() { return 0x8000 | (seqAtual & 0x7FFF); }
 
+uint32_t rxTotal = 0;                                 // pacotes LoRa ouvidos (qualquer um)
 bool horaValida() { return time(nullptr) > 1700000000; }   // NTP ja acertou (passou de nov/2023)
 
 // ====================================================================
@@ -350,7 +352,7 @@ void desenhar() {
               " " + h;
   tela.drawStr(0, 26, l2.c_str());
   tela.drawStr(0, 40, ultimoEvento.c_str());
-  String l4 = "fila " + String(nFila) + " cliques " + String(cliques);
+  String l4 = "fila " + String(nFila) + " cliq " + String(cliques) + " rx " + String(rxTotal);
   tela.drawStr(0, 54, l4.c_str());
   tela.sendBuffer();
 }
@@ -433,6 +435,7 @@ void atenderComando() {
 }
 
 void processarPacote() {
+  rxTotal++;
   size_t len = radio.getPacketLength();
   uint8_t b[32];
   if (len > sizeof(b)) len = sizeof(b);
@@ -444,6 +447,7 @@ void processarPacote() {
     return;
   }
   uint16_t badge = b[2] | (b[3] << 8), seq = b[4] | (b[5] << 8);
+  Serial.printf("[ETAPA A] LoRa recebido: tipo=%u badge=%u seq=%u RSSI=%.0f SNR=%.1f (rx #%lu)\n", b[1], badge, seq, radio.getRSSI(), radio.getSNR(), (unsigned long)rxTotal);
   ultimoRssi = radio.getRSSI(); ultimoSnr = radio.getSNR(); temQualidade = true;
 
   if (b[1] == 4) {                                    // ACK de comando (cracha -> gateway)
@@ -458,7 +462,9 @@ void processarPacote() {
 
   // PONTO REMOTO vindo do botao do cracha: publica e responde ACK (com a hora certa)
   uint32_t horaCracha = b[6] | (b[7] << 8) | (b[8] << 16) | ((uint32_t)b[9] << 24);
+  Serial.printf("[ETAPA B] publicando no MQTT (mqtt=%s, hora valida=%s)\n", mqtt.connected() ? "conectado" : "DESCONECTADO", horaValida() ? "sim" : "NAO (NTP)");
   if (publicarPonto(badge, seq, horaCracha, b[10] & 1, true)) {
+    Serial.println("[ETAPA C] MQTT aceitou; mandando ACK por LoRa");
     ultimoEvento = "cracha " + String(badge) + " seq " + String(seq) + " OK";
     uint8_t ack[11];
     montarPacote(ack, 2, badge, seq, horaValida() ? time(nullptr) : 0, 0);
@@ -467,6 +473,7 @@ void processarPacote() {
     publicarStatus();
     bipeOk();                                           // o gateway tambem confirma o ponto remoto
   } else {
+    Serial.println("[ETAPA B] FALHOU: sem MQTT ou sem hora. Nao dou ACK (o cracha tenta de novo)");
     ultimoEvento = "sem MQTT/hora: sem ACK";
   }
 }
@@ -487,6 +494,7 @@ void garantirConexoes() {
 // ====================================================================
 void setup() {
   Serial.begin(115200);
+  Serial.printf("=== GATEWAY versao %s ===\n", VERSAO);
   pinMode(PINO_VEXT, OUTPUT); digitalWrite(PINO_VEXT, LOW); delay(100);
   pinMode(PINO_LED, OUTPUT);
   pinMode(PINO_BUZZER, OUTPUT); digitalWrite(PINO_BUZZER, LOW);

@@ -188,3 +188,9 @@ Queda ≈ 7 dB a cada dobra de distância; extrapolando, −65 dBm ≈ 4 m e −
 - **Sintoma:** `cracha.ino` linha 245 (`bool enviarPonto(const Ponto& p)`).
 - **Causa:** o Arduino IDE cria sozinho os protótipos das funções no topo do arquivo, ANTES da definição do `struct Ponto`; uma função que tem o struct na assinatura então falha.
 - **Solução:** `enviarPonto(uint16_t seq, uint32_t hora, uint8_t reenvio)` recebe os campos soltos. O gateway não tem esse caso (o struct só aparece dentro de funções).
+
+### 8.5 Ponto remoto não chega ao banco: etapas de diagnóstico (26/11/2026)
+- **Sintoma (relato da equipe):** nada chega ao banco e, ao apertar PRG no crachá, "nada acontece". Funcionava até a última aula.
+- **O que mudou desde o último ponto no banco (24/11 20:54):** `cracha.ino` reescrito (PRG→LoRa, BLE, fila), `gateway.ino` com ajustes pequenos (seq ≥ 32768, limpeza do DIO1, bipe no ponto remoto) e fluxo do Node-RED regenerado.
+- **Verificado:** nuvem (broker, Node-RED, banco) grava ponto simulado → o defeito está nas placas/no ar. Dado de teste apagado.
+- **Ação:** firmware `diag-26/11-b` com etapas numeradas no Serial e contadores no OLED (tx/rx). Roteiro em `docs/DIAGNOSTICO_PONTO_REMOTO.md`. Causa ainda a confirmar na bancada.

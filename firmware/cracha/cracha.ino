@@ -35,6 +35,7 @@
 #include <BLEAdvertising.h>
 
 // ============================ CONFIGURACAO ============================
+const char* VERSAO = "diag-26/11-b";       // aparece no OLED e no Serial: confirma QUE firmware esta gravado
 const uint16_t ID_CRACHA = 101;            // numero do cracha (101 = demo; 102 = teste)
 const char* NOME_BLE = "UNIFESP-BADGE";    // o agente do PC procura por este nome
 const bool BUZZER_PASSIVO = false;         // false = buzzer ATIVO; true = passivo
@@ -80,6 +81,8 @@ uint16_t seqAtual = 0;
 uint8_t idBoot;
 String mensagem = "aperte o botao";
 unsigned long fimMensagem = 0, ultimoReenvio = 0, ultimoDesenho = 0;
+uint32_t rxTotal = 0;                      // quantos pacotes LoRa (qualquer um) o radio ouviu
+int ultimoTx = 999;                        // codigo de retorno do ultimo transmit (0 = ok)
 uint16_t ultimoId = 0; uint8_t ultimoCodigo = 0; unsigned long quandoUltimoId = 0;   // evita bipe em dobro
 
 void desenhar();   // declarada antes por clareza (usada em varias funcoes)
@@ -248,13 +251,19 @@ bool enviarPonto(uint16_t seq, uint32_t hora, uint8_t reenvio) {
   uint8_t pacote[11];
   montarPacote(pacote, 1, ID_CRACHA, seq, hora, reenvio ? 1 : 0);
   for (int t = 1; t <= TENTATIVAS; t++) {
+    avisar("TX seq " + String(seq) + " " + String(t) + "/" + String(TENTATIVAS), 3000);
     digitalWrite(PINO_LED, HIGH);
-    radio.transmit(pacote, 11);
+    ultimoTx = radio.transmit(pacote, 11);
     digitalWrite(PINO_LED, LOW);
+    Serial.printf("[ETAPA 3] transmit seq %u tentativa %d -> codigo %d (0 = o radio MANDOU o pacote)\n", seq, t, ultimoTx);
     escutar();
     uint32_t horaGw = esperarAck(seq);
-    if (horaGw) { sincronizarRelogio(horaGw); return true; }
-    Serial.printf("sem ACK (seq %u, tentativa %d/%d)\n", seq, t, TENTATIVAS);
+    if (horaGw) {
+      Serial.printf("[ETAPA 4] ACK do gateway recebido (RSSI %.0f dBm, SNR %.1f)\n", radio.getRSSI(), radio.getSNR());
+      sincronizarRelogio(horaGw);
+      return true;
+    }
+    Serial.printf("[ETAPA 4] SEM ACK (seq %u, tentativa %d/%d): o gateway nao respondeu\n", seq, t, TENTATIVAS);
   }
   escutar();
   return false;
@@ -283,12 +292,15 @@ int processarFila() {
 // Clique do botao = um ponto remoto por LoRa
 // ====================================================================
 void aoClicar() {
+  Serial.printf("[ETAPA 1] CLIQUE detectado (PRG=%d GPIO4=%d)\n", digitalRead(PINO_PRG), digitalRead(PINO_BOTAO));
+  avisar("clique!", 1500);
   bipeClique();                                       // feedback imediato
   seqAtual = (seqAtual >= SEQ_MAX) ? 1 : seqAtual + 1;
   memoria.putUShort("seq", seqAtual);                 // grava ANTES de enviar: nunca reusa um numero
   if (nFila >= TAM_FILA) { avisar("FILA CHEIA: descartei o mais antigo", 4000); tirarDaFila(0); }
   fila[nFila++] = { seqAtual, lerEpochRtc(), 0 };     // hora 0 = sem relogio; o gateway carimba
   salvarFila();
+  Serial.printf("[ETAPA 2] ponto gravado na fila: seq %u, hora RTC %lu (0 = sem relogio), fila=%d\n", seqAtual, (unsigned long)fila[nFila-1].hora, nFila);
 
   int ok = processarFila();
   if (nFila == 0 && ok > 0) { avisar("PONTO OK seq " + String(seqAtual), 4000); bipeOk(); }
@@ -305,6 +317,8 @@ void tratarPacoteRecebido() {
   if (len > sizeof(b)) len = sizeof(b);
   int estado = radio.readData(b, len);
   escutar();
+  rxTotal++;
+  Serial.printf("[RX] pacote #%lu len=%u tipo=%u RSSI=%.0f\n", (unsigned long)rxTotal, (unsigned)len, len > 1 ? b[1] : 0, radio.getRSSI());
   if (estado != RADIOLIB_ERR_NONE || len != 11 || b[0] != 1 || b[1] != 3) return;      // so comandos
   if ((b[2] | (b[3] << 8)) != ID_CRACHA) return;
   uint16_t id = b[4] | (b[5] << 8);
@@ -363,7 +377,8 @@ void desenhar() {
   tela.setFont(u8g2_font_6x10_tr);
   String linha = millis() < fimMensagem ? mensagem : String(nFila > 0 ? "aguardando envio" : "aperte o botao");
   tela.drawStr(0, 50, linha.c_str());
-  tela.drawStr(0, 62, ("fila: " + String(nFila) + "  ultimo seq: " + String(seqAtual)).c_str());
+  tela.drawStr(0, 62, ("f:" + String(nFila) + " s:" + String(seqAtual) + " tx:" + String(ultimoTx == 999 ? -1 : ultimoTx) + " rx:" + String(rxTotal)).c_str());
+  tela.drawStr(104, 13, digitalRead(PINO_PRG) == LOW ? "PRG" : "");
   tela.sendBuffer();
 }
 
@@ -405,10 +420,12 @@ void setup() {
   BLEDevice::init(NOME_BLE);
   anunciarBle();
 
+  Serial.printf("=== CRACHA versao %s ===\n", VERSAO);
+  Serial.println("Legenda do OLED (ultima linha): f=fila s=ultimo seq tx=codigo do ultimo envio (0=ok) rx=pacotes LoRa ouvidos");
   Serial.printf("Cracha %u pronto. seq=%u, fila=%d, relogio=%s\n", ID_CRACHA, seqAtual, nFila,
                 lerEpochRtc() ? "ok" : "parado/ausente (hora 0: o gateway carimba)");
   tom(2000, 60);
-  desenhar();
+  avisar(String("fw ") + VERSAO, 4000);
 }
 
 void loop() {
@@ -423,6 +440,11 @@ void loop() {
   if (nFila > 0 && millis() - ultimoReenvio > REENVIO_FILA_MS) {
     int ok = processarFila();
     if (ok > 0) { avisar(String(ok) + " ponto(s) da fila enviado(s)", 4000); bipeOk(); }
+  }
+  static unsigned long ultimoBatimento = 0;
+  if (millis() - ultimoBatimento > 5000) {   // prova de vida: se isto nao aparece no Serial, o firmware travou
+    ultimoBatimento = millis();
+    Serial.printf("[vivo] PRG=%d GPIO4=%d fila=%d seq=%u rx=%lu\n", digitalRead(PINO_PRG), digitalRead(PINO_BOTAO), nFila, seqAtual, (unsigned long)rxTotal);
   }
   if (millis() - ultimoDesenho > 1000) { ultimoDesenho = millis(); desenhar(); }
   delay(5);
